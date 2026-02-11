@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { UserPlus, Trash2, ShieldCheck, Key, MapPin, CheckCircle2, ArrowLeft, Globe, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UserPlus, Trash2, ShieldCheck, Key, MapPin, CheckCircle2, ArrowLeft, Globe, ChevronDown, Mic, AlertCircle } from 'lucide-react';
 import { Contact, AppConfig } from '../types';
 import { languages } from '../translations';
 
@@ -20,15 +20,36 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [geoState, setGeoState] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>(initialConfig?.pin ? 'SUCCESS' : 'IDLE');
+  const [micState, setMicState] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>(initialConfig?.pin ? 'SUCCESS' : 'IDLE');
   const [showLangMenu, setShowLangMenu] = useState(false);
+
+  // Demande automatique des permissions au chargement
+  useEffect(() => {
+    if (!initialConfig?.pin) {
+      testGeo();
+      testMic();
+    }
+  }, []);
 
   const testGeo = () => {
     setGeoState('LOADING');
     navigator.geolocation.getCurrentPosition(
       () => setGeoState('SUCCESS'),
       () => setGeoState('ERROR'),
-      { timeout: 5000 }
+      { timeout: 8000, enableHighAccuracy: true }
     );
+  };
+
+  const testMic = async () => {
+    setMicState('LOADING');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      setMicState('SUCCESS');
+    } catch (err: any) {
+      console.error("Microphone access error:", err);
+      setMicState('ERROR');
+    }
   };
 
   const addContact = () => {
@@ -39,11 +60,10 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
     }
   };
 
-  const isReady = contacts.length > 0 && pin.length === 4 && geoState === 'SUCCESS';
+  const isReady = contacts.length > 0 && pin.length === 4 && geoState === 'SUCCESS' && micState === 'SUCCESS';
 
   return (
-    <div className="p-8 pb-16 animate-in fade-in slide-in-from-bottom-6 duration-700 relative">
-      {/* Discreet Language Selector Trigger (Top Right) */}
+    <div className="p-8 pb-32 animate-in fade-in slide-in-from-bottom-6 duration-700 relative min-h-full">
       <div className="absolute top-6 right-6 z-50">
         <button 
           onClick={() => setShowLangMenu(!showLangMenu)}
@@ -109,33 +129,54 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
       )}
 
       <div className="space-y-6">
-        {/* Permissions GPS */}
-        <section className={`rounded-3xl p-6 border transition-all duration-500 ${
-          geoState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : geoState === 'ERROR' ? 'bg-red-500/5 border-red-500/20' : 'bg-neutral-900/40 border-white/5'
-        }`}>
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-sm font-black text-white uppercase flex items-center gap-2">
-              <MapPin size={16} className={geoState === 'SUCCESS' ? 'text-green-500' : 'text-red-500'} />
-              {t.geolocation}
-            </h2>
-            {geoState === 'SUCCESS' && <CheckCircle2 size={18} className="text-green-500" />}
-          </div>
-          <p className="text-xs text-neutral-500 mb-4">{t.geoInstruction}</p>
-          <button onClick={testGeo} disabled={geoState === 'LOADING'} className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-            geoState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 border border-white/10 text-white'
+        <div className="grid grid-cols-2 gap-3">
+          <section className={`rounded-3xl p-5 border transition-all duration-500 flex flex-col items-center ${
+            geoState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : geoState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'bg-neutral-900/40 border-white/5'
           }`}>
-            {geoState === 'LOADING' ? '...' : geoState === 'SUCCESS' ? t.geoAllowed : t.geoAuthorize}
-          </button>
-        </section>
+            <div className="flex justify-between w-full items-start mb-3">
+              <h2 className="text-[10px] font-black text-white uppercase flex items-center gap-2">
+                <MapPin size={14} className={geoState === 'SUCCESS' ? 'text-green-500' : 'text-red-500'} />
+                GPS
+              </h2>
+              {geoState === 'SUCCESS' && <CheckCircle2 size={14} className="text-green-500" />}
+            </div>
+            <button onClick={testGeo} disabled={geoState === 'LOADING'} className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+              geoState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 border border-white/10 text-white'
+            }`}>
+              {geoState === 'LOADING' ? '...' : geoState === 'SUCCESS' ? 'OK' : (geoState === 'ERROR' ? 'Réessayer' : 'Activation...')}
+            </button>
+            {geoState === 'ERROR' && (
+              <p className="text-[8px] text-red-400 mt-2 font-bold uppercase text-center leading-tight">Autorisez le GPS</p>
+            )}
+          </section>
 
-        {/* PIN Configuration */}
+          <section className={`rounded-3xl p-5 border transition-all duration-500 flex flex-col items-center ${
+            micState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : micState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'bg-neutral-900/40 border-white/5'
+          }`}>
+            <div className="flex justify-between w-full items-start mb-3">
+              <h2 className="text-[10px] font-black text-white uppercase flex items-center gap-2">
+                <Mic size={14} className={micState === 'SUCCESS' ? 'text-green-500' : 'text-red-500'} />
+                Micro
+              </h2>
+              {micState === 'SUCCESS' && <CheckCircle2 size={14} className="text-green-500" />}
+            </div>
+            <button onClick={testMic} disabled={micState === 'LOADING'} className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+              micState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 border border-white/10 text-white'
+            }`}>
+              {micState === 'LOADING' ? '...' : micState === 'SUCCESS' ? 'OK' : (micState === 'ERROR' ? 'Réessayer' : 'Activation...')}
+            </button>
+            {micState === 'ERROR' && (
+              <p className="text-[8px] text-red-400 mt-2 font-bold uppercase text-center leading-tight">Autorisez le Micro</p>
+            )}
+          </section>
+        </div>
+
         <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><Key size={16} className="text-red-500" />{t.pinCode}</h2>
           <input type="password" maxLength={4} inputMode="numeric" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
             className="w-full bg-neutral-950 border border-white/5 rounded-2xl p-4 text-center text-3xl font-black tracking-[1em] text-white focus:ring-2 focus:ring-red-500 outline-none transition-all" />
         </section>
 
-        {/* Contacts */}
         <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.emergencyContacts}</h2>
           <div className="space-y-3 mb-6">

@@ -24,8 +24,8 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   }, []);
 
   return (
-    <div className="flex flex-col h-full p-8 animate-in fade-in zoom-in-95 duration-1000">
-      <div className="flex-1 flex flex-col items-center justify-center gap-10">
+    <div className="flex flex-col p-8 pb-12 animate-in fade-in zoom-in-95 duration-1000 min-h-full">
+      <div className="flex-1 flex flex-col items-center justify-center gap-10 mb-10">
         <div className="relative">
           <div className={`absolute inset-[-40px] border border-green-500/10 rounded-full transition-transform duration-[2000ms] ${pulse ? 'scale-110 opacity-50' : 'scale-90 opacity-0'}`}></div>
           <div className={`absolute inset-[-20px] border border-green-500/20 rounded-full transition-transform duration-[1500ms] ${pulse ? 'scale-105 opacity-70' : 'scale-95 opacity-0'}`}></div>
@@ -74,7 +74,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         </div>
       </div>
 
-      <div className="mt-auto space-y-6">
+      <div className="space-y-6 mt-auto">
         <div className="bg-neutral-900/60 p-5 rounded-[2rem] border border-white/5 flex items-center gap-4">
           <div className="bg-red-500/10 p-3 rounded-2xl">
             <Zap className="text-red-500" size={20} />
