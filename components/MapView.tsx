@@ -15,6 +15,8 @@ const MapView: React.FC<Props> = ({ lat, lng, zoom = 15 }) => {
     if (mapRef.current && !mapInstance.current) {
       // @ts-ignore
       const L = window.L;
+      if (!L) return;
+
       mapInstance.current = L.map(mapRef.current, {
         zoomControl: false,
         attributionControl: false,
@@ -23,12 +25,13 @@ const MapView: React.FC<Props> = ({ lat, lng, zoom = 15 }) => {
         scrollWheelZoom: false
       }).setView([lat, lng], zoom);
 
-      // Utilisation d'un style "Dark Matter" plus contrasté pour la lisibilité des noms
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20,
-        contrast: 1.2,
-        brightness: 1.1
-      }).addTo(mapInstance.current);
+      // On utilise "as any" pour les options afin d'éviter les erreurs strictes de TypeScript 
+      // sur les propriétés de rendu des serveurs de tuiles.
+      const tileOptions: any = {
+        maxZoom: 20
+      };
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', tileOptions).addTo(mapInstance.current);
 
       const customIcon = L.divIcon({
         className: 'custom-div-icon',

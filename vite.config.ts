@@ -16,10 +16,3 @@ export default defineConfig({
     port: 3000
   }
 });
-
-// Helper simple pour le plugin react si non importé correctement dans cet environnement
-function react() {
-  return {
-    name: 'vite-plugin-react-dummy'
-  };
-}
