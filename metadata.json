@@ -1,0 +1,9 @@
+{
+  "name": "Projet 97 - Sécurité Personnelle",
+  "description": "Système de sécurité intelligent et discret. Déclenchement par mot-clé '97' ou triple pression. Protection instantanée pour les situations d'urgence.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

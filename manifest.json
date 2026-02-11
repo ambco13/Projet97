@@ -1,0 +1,28 @@
+
+{
+  "short_name": "Projet 97",
+  "name": "Projet 97 - Guardian Protocol",
+  "description": "Application de sécurité personnelle avec déclenchement vocal et par mouvement.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1067/1067562.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "display": "standalone",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "orientation": "portrait",
+  "categories": ["security", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Déclencher SOS",
+      "short_name": "SOS",
+      "url": "/?trigger=emergency",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/1067/1067562.png", "sizes": "192x192" }]
+    }
+  ]
+}
