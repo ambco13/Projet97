@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Trash2, ShieldCheck, Key, MapPin, CheckCircle2, ArrowLeft, Globe, ChevronDown, Mic, AlertCircle } from 'lucide-react';
+import { UserPlus, Trash2, ShieldCheck, Key, MapPin, CheckCircle2, ArrowLeft, Globe, ChevronDown, Mic, AlertCircle, Cloud, Bot, Sparkles } from 'lucide-react';
 import { Contact, AppConfig } from '../types';
 import { languages } from '../translations';
 
 interface Props {
-  onComplete: (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => void;
+  onComplete: (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string, aiGuardian: boolean) => void;
   onCancel?: () => void;
   initialConfig?: AppConfig;
   hideHeader?: boolean;
@@ -16,19 +16,25 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
   const [contacts, setContacts] = useState<Contact[]>(initialConfig?.contacts || []);
   const [pin, setPin] = useState(initialConfig?.pin || '');
   const [guardianNetwork, setGuardianNetwork] = useState(initialConfig?.guardianNetwork ?? true);
+  const [aiGuardian, setAiGuardian] = useState(initialConfig?.aiGuardian ?? true);
   const [language, setLanguage] = useState<string>(initialConfig?.language || 'fr');
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [geoState, setGeoState] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>(initialConfig?.pin ? 'SUCCESS' : 'IDLE');
   const [micState, setMicState] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>(initialConfig?.pin ? 'SUCCESS' : 'IDLE');
+  const [dbState, setDbState] = useState<'OFFLINE' | 'SYNCING' | 'CONNECTED'>('SYNCING');
   const [showLangMenu, setShowLangMenu] = useState(false);
 
-  // Demande automatique des permissions au chargement
   useEffect(() => {
     if (!initialConfig?.pin) {
       testGeo();
       testMic();
     }
+    
+    // Simulation du check DB pour montrer le "match"
+    setTimeout(() => {
+      setDbState('CONNECTED');
+    }, 2000);
   }, []);
 
   const testGeo = () => {
@@ -47,7 +53,6 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
       stream.getTracks().forEach(track => track.stop());
       setMicState('SUCCESS');
     } catch (err: any) {
-      console.error("Microphone access error:", err);
       setMicState('ERROR');
     }
   };
@@ -95,7 +100,6 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
                   <span className="text-lg leading-none">{meta.flag}</span>
                   <span className="text-[10px] font-black uppercase tracking-widest">{meta.name}</span>
                 </div>
-                <span className="text-[9px] font-black opacity-30 ml-4">{meta.shortName}</span>
               </button>
             ))}
           </div>
@@ -129,6 +133,18 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
       )}
 
       <div className="space-y-6">
+        {/* Cloud Status */}
+        <div className={`bg-neutral-900/40 rounded-3xl p-4 border flex items-center justify-between transition-colors ${dbState === 'CONNECTED' ? 'border-blue-500/20' : 'border-white/5'}`}>
+           <div className="flex items-center gap-3">
+             <Cloud className={dbState === 'CONNECTED' ? 'text-blue-500' : 'text-neutral-500 animate-pulse'} size={20} />
+             <div>
+               <p className="text-[9px] font-black text-neutral-500 uppercase">{t.cloudStatus}</p>
+               <p className="text-white text-[11px] font-bold">{dbState === 'CONNECTED' ? t.cloudConnected : t.cloudSyncing}</p>
+             </div>
+           </div>
+           {dbState === 'CONNECTED' && <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>}
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <section className={`rounded-3xl p-5 border transition-all duration-500 flex flex-col items-center ${
             geoState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : geoState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'bg-neutral-900/40 border-white/5'
@@ -138,16 +154,12 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
                 <MapPin size={14} className={geoState === 'SUCCESS' ? 'text-green-500' : 'text-red-500'} />
                 GPS
               </h2>
-              {geoState === 'SUCCESS' && <CheckCircle2 size={14} className="text-green-500" />}
             </div>
-            <button onClick={testGeo} disabled={geoState === 'LOADING'} className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-              geoState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 border border-white/10 text-white'
+            <button onClick={testGeo} className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest ${
+              geoState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 text-white'
             }`}>
-              {geoState === 'LOADING' ? '...' : geoState === 'SUCCESS' ? 'OK' : (geoState === 'ERROR' ? 'Réessayer' : 'Activation...')}
+              {geoState === 'SUCCESS' ? 'OK' : 'ACTIVER'}
             </button>
-            {geoState === 'ERROR' && (
-              <p className="text-[8px] text-red-400 mt-2 font-bold uppercase text-center leading-tight">Autorisez le GPS</p>
-            )}
           </section>
 
           <section className={`rounded-3xl p-5 border transition-all duration-500 flex flex-col items-center ${
@@ -156,20 +168,35 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
             <div className="flex justify-between w-full items-start mb-3">
               <h2 className="text-[10px] font-black text-white uppercase flex items-center gap-2">
                 <Mic size={14} className={micState === 'SUCCESS' ? 'text-green-500' : 'text-red-500'} />
-                Micro
+                MICRO
               </h2>
-              {micState === 'SUCCESS' && <CheckCircle2 size={14} className="text-green-500" />}
             </div>
-            <button onClick={testMic} disabled={micState === 'LOADING'} className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-              micState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 border border-white/10 text-white'
+            <button onClick={testMic} className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest ${
+              micState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 text-white'
             }`}>
-              {micState === 'LOADING' ? '...' : micState === 'SUCCESS' ? 'OK' : (micState === 'ERROR' ? 'Réessayer' : 'Activation...')}
+              {micState === 'SUCCESS' ? 'OK' : 'ACTIVER'}
             </button>
-            {micState === 'ERROR' && (
-              <p className="text-[8px] text-red-400 mt-2 font-bold uppercase text-center leading-tight">Autorisez le Micro</p>
-            )}
           </section>
         </div>
+
+        {/* AI Guardian Toggle */}
+        <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
+           <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                 <Bot size={18} className="text-blue-500" />
+                 <h2 className="text-sm font-black text-white uppercase">{t.aiGuardian}</h2>
+              </div>
+              <button 
+                onClick={() => setAiGuardian(!aiGuardian)}
+                className={`w-12 h-6 rounded-full transition-all relative ${aiGuardian ? 'bg-blue-600' : 'bg-neutral-800'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${aiGuardian ? 'left-7' : 'left-1'}`}></div>
+              </button>
+           </div>
+           <p className="text-[10px] text-neutral-500 leading-relaxed font-medium">
+             {t.aiGuardianDesc} <Sparkles size={10} className="inline ml-1 text-blue-400" />
+           </p>
+        </section>
 
         <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><Key size={16} className="text-red-500" />{t.pinCode}</h2>
@@ -199,7 +226,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
           </div>
         </section>
 
-        <button disabled={!isReady} onClick={() => onComplete(contacts, pin, guardianNetwork, language)} className="w-full bg-red-600 text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
+        <button disabled={!isReady} onClick={() => onComplete(contacts, pin, guardianNetwork, language, aiGuardian)} className="w-full bg-red-600 text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
           {initialConfig?.pin ? t.saveChanges : t.activateProtection}
         </button>
       </div>

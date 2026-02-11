@@ -9,7 +9,7 @@ export interface Contact {
 export interface EmergencyLog {
   id: string;
   timestamp: string;
-  type: 'TRIGGER' | 'AUDIO' | 'LOCATION' | 'DETERRENCE' | 'SYSTEM';
+  type: 'TRIGGER' | 'AUDIO' | 'LOCATION' | 'DETERRENCE' | 'SYSTEM' | 'AI_ADVICE';
   detail: string;
   coordinates?: { lat: number; lng: number };
 }
@@ -21,4 +21,5 @@ export interface AppConfig {
   contacts: Contact[];
   guardianNetwork: boolean;
   language: string;
+  aiGuardian: boolean;
 }

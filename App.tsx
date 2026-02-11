@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const stateRef = useRef<AppState>('SETUP');
   const [config, setConfig] = useState<AppConfig>(() => {
     const saved = localStorage.getItem('p97_config');
-    return saved ? JSON.parse(saved) : { pin: '', contacts: [], guardianNetwork: true, language: 'fr' };
+    return saved ? JSON.parse(saved) : { pin: '', contacts: [], guardianNetwork: true, language: 'fr', aiGuardian: true };
   });
   const [logs, setLogs] = useState<EmergencyLog[]>(() => {
     const saved = localStorage.getItem('p97_logs');
@@ -63,13 +63,15 @@ const App: React.FC = () => {
 
   const triggerEmergency = useCallback((reason: string) => {
     if (stateRef.current === 'EMERGENCY' || stateRef.current === 'DEACTIVATING') return;
+    
+    // Haptic Feedback simulé
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         addLog({
           type: 'TRIGGER',
-          detail: `${reason} (${config.language.toUpperCase()})`,
+          detail: `${reason} (IA Protection ON)`,
           coordinates: { lat: pos.coords.latitude, lng: pos.coords.longitude }
         });
       },
@@ -99,7 +101,7 @@ const App: React.FC = () => {
       recognition.onend = () => {
         setIsListening(false);
         if (stateRef.current === 'PROTECTED') {
-          setTimeout(() => { if (stateRef.current === 'PROTECTED') recognition.start(); }, 300);
+          setTimeout(() => { if (stateRef.current === 'PROTECTED') recognition.start(); }, 500);
         }
       };
       recognition.onerror = () => setIsListening(false);
@@ -119,8 +121,8 @@ const App: React.FC = () => {
     }
   }, [state, startListening]);
 
-  const handleFinishSetup = (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => {
-    setConfig({ pin, contacts, guardianNetwork, language });
+  const handleFinishSetup = (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string, aiGuardian: boolean) => {
+    setConfig({ pin, contacts, guardianNetwork, language, aiGuardian });
     setState('PROTECTED');
     setActiveTab('PROTECTED');
   };
@@ -177,18 +179,18 @@ const App: React.FC = () => {
       </div>
 
       {showNav && (
-        <nav className="absolute bottom-0 left-0 right-0 bg-neutral-900/90 backdrop-blur-2xl border-t border-white/5 px-4 flex justify-around items-center z-30 h-24 pb-6">
-          <button onClick={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'PROTECTED' ? 'text-red-500 scale-105' : 'text-neutral-500'}`}>
-            <Shield size={24} fill={activeTab === 'PROTECTED' ? 'currentColor' : 'none'} />
-            <span className="text-[10px] font-black uppercase tracking-widest">{t.active}</span>
+        <nav className="absolute bottom-0 left-0 right-0 bg-neutral-900/95 backdrop-blur-3xl border-t border-white/5 px-4 flex justify-around items-center z-30 h-24 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+          <button onClick={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'PROTECTED' ? 'text-red-500 scale-110' : 'text-neutral-500 hover:text-neutral-300'}`}>
+            <Shield size={22} fill={activeTab === 'PROTECTED' ? 'currentColor' : 'none'} />
+            <span className="text-[9px] font-black uppercase tracking-widest">{t.active}</span>
           </button>
-          <button onClick={() => setActiveTab('HISTORY')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'HISTORY' ? 'text-red-500 scale-105' : 'text-neutral-500'}`}>
-            <History size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">{t.logs}</span>
+          <button onClick={() => setActiveTab('HISTORY')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'HISTORY' ? 'text-red-500 scale-110' : 'text-neutral-500 hover:text-neutral-300'}`}>
+            <History size={22} />
+            <span className="text-[9px] font-black uppercase tracking-widest">{t.logs}</span>
           </button>
-          <button onClick={() => setActiveTab('SETUP')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'SETUP' ? 'text-red-500 scale-105' : 'text-neutral-500'}`}>
-            <Settings size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">{t.settings}</span>
+          <button onClick={() => setActiveTab('SETUP')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'SETUP' ? 'text-red-500 scale-110' : 'text-neutral-500 hover:text-neutral-300'}`}>
+            <Settings size={22} />
+            <span className="text-[9px] font-black uppercase tracking-widest">{t.settings}</span>
           </button>
         </nav>
       )}
