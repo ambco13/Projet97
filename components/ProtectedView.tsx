@@ -1,6 +1,6 @@
 
-import React, { useEffect, useState } from 'react';
-import { Shield, Mic, MapPin, Zap, Users } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Shield, Mic, MapPin, Zap, Users, Globe } from 'lucide-react';
 import { Contact } from '../types';
 
 interface Props {
@@ -15,14 +15,54 @@ interface Props {
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
-  
-  // Nombre fixe de membres Guardian pour éviter l'aspect aléatoire
-  const GUARDIAN_COUNT = 12;
+  const [guardianCount, setGuardianCount] = useState<number | null>(null);
+  const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
+
+  // Génération d'un ID de session unique pour ce dispositif
+  const [deviceId] = useState(() => {
+    const saved = localStorage.getItem('p97_device_id');
+    if (saved) return saved;
+    const newId = 'dev_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('p97_device_id', newId);
+    return newId;
+  });
+
+  const fetchRealPresence = useCallback(async () => {
+    try {
+      const response = await fetch('/.netlify/functions/presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setGuardianCount(data.count);
+        setDbStatus('LIVE');
+      } else {
+        setDbStatus('OFFLINE');
+      }
+    } catch (err) {
+      console.error("DB Sync Error:", err);
+      setDbStatus('OFFLINE');
+    }
+  }, [deviceId]);
 
   useEffect(() => {
-    const interval = setInterval(() => setPulse(p => !p), 2000);
-    return () => clearInterval(interval);
-  }, []);
+    // Premier appel immédiat
+    fetchRealPresence();
+
+    // Battement de cœur toutes les 30 secondes pour rester "vivant" en DB
+    const hbInterval = setInterval(fetchRealPresence, 30000);
+    
+    // Animation de pulsation visuelle
+    const pulseInterval = setInterval(() => setPulse(p => !p), 2000);
+
+    return () => {
+      clearInterval(hbInterval);
+      clearInterval(pulseInterval);
+    };
+  }, [fetchRealPresence]);
 
   return (
     <div className="flex flex-col p-6 pb-40 animate-in fade-in zoom-in-95 duration-700">
@@ -41,13 +81,29 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
             <span className="text-[10px] font-black tracking-[0.4em] text-green-500 uppercase ml-1">{t.active}</span>
           </div>
 
-          {/* Badge Guardian - Positionné et texte fixe */}
+          {/* Badge Guardian - Réel via DB */}
           {guardianNetwork && (
-            <div className="absolute -bottom-4 z-20 bg-blue-600 px-4 py-2 rounded-full border border-blue-400/30 flex items-center gap-2 shadow-xl animate-bounce whitespace-nowrap">
-              <Users size={12} className="text-white shrink-0" />
-              <span className="text-[9px] font-black text-white uppercase tracking-wider">
-                {GUARDIAN_COUNT} {t.guardianNet}
-              </span>
+            <div className={`absolute -bottom-4 z-20 px-4 py-2 rounded-full border flex items-center gap-2 shadow-xl transition-all duration-500 whitespace-nowrap ${
+              dbStatus === 'LIVE' ? 'bg-blue-600 border-blue-400/30' : 'bg-neutral-800 border-white/10 opacity-80'
+            }`}>
+              {dbStatus === 'CONNECTING' ? (
+                <div className="flex items-center gap-2">
+                  <Globe size={12} className="text-white/50 animate-spin" />
+                  <span className="text-[8px] font-black text-white/80 uppercase tracking-tighter">Linking DB...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="relative flex items-center justify-center">
+                    <div className={`absolute w-2.5 h-2.5 rounded-full animate-ping ${dbStatus === 'LIVE' ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                    <div className={`relative w-1.5 h-1.5 rounded-full ${dbStatus === 'LIVE' ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                  </div>
+                  <Users size={12} className="text-white shrink-0" />
+                  <span className="text-[9px] font-black text-white uppercase tracking-wider tabular-nums">
+                    {guardianCount ?? '--'} {t.guardianNet}
+                  </span>
+                  <span className="text-[7px] font-black text-white/40 uppercase ml-1">LIVE</span>
+                </>
+              )}
             </div>
           )}
         </div>
