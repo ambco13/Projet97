@@ -57,7 +57,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
         </button>
 
         {showLangMenu && (
-          <div className="absolute top-full right-0 mt-3 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-w-[140px] animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="absolute top-full right-0 mt-4 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.6)] min-w-[160px] animate-in fade-in slide-in-from-top-2 duration-300">
             {Object.entries(languages).map(([code, meta]) => (
               <button
                 key={code}
@@ -71,11 +71,11 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
                     : 'text-neutral-500 hover:bg-white/5 hover:text-neutral-300'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{meta.flag}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-lg leading-none">{meta.flag}</span>
                   <span className="text-[10px] font-black uppercase tracking-widest">{meta.name}</span>
                 </div>
-                <span className="text-[9px] font-bold opacity-40">{meta.shortName}</span>
+                <span className="text-[9px] font-black opacity-30 ml-4">{meta.shortName}</span>
               </button>
             ))}
           </div>
