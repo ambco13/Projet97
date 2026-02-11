@@ -136,7 +136,7 @@ const App: React.FC = () => {
          <div className="absolute inset-0 bg-red-950/20 emergency-pulse" />
       </div>
 
-      <div className="flex-1 relative z-10 overflow-y-auto overflow-x-hidden pb-24">
+      <div className="flex-1 relative z-10 overflow-y-auto scroll-smooth">
         {(!config.pin || activeTab === 'SETUP') && state !== 'EMERGENCY' && state !== 'DEACTIVATING' && (
           <SetupView 
             onComplete={handleFinishSetup} 
@@ -177,16 +177,16 @@ const App: React.FC = () => {
       </div>
 
       {showNav && (
-        <nav className="absolute bottom-0 left-0 right-0 bg-neutral-900/80 backdrop-blur-xl border-t border-white/5 p-4 flex justify-around items-center z-20 pb-8">
-          <button onClick={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'PROTECTED' ? 'text-red-500 scale-110' : 'text-neutral-500'}`}>
+        <nav className="absolute bottom-0 left-0 right-0 bg-neutral-900/90 backdrop-blur-2xl border-t border-white/5 px-4 flex justify-around items-center z-30 h-24 pb-6">
+          <button onClick={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'PROTECTED' ? 'text-red-500 scale-105' : 'text-neutral-500'}`}>
             <Shield size={24} fill={activeTab === 'PROTECTED' ? 'currentColor' : 'none'} />
             <span className="text-[10px] font-black uppercase tracking-widest">{t.active}</span>
           </button>
-          <button onClick={() => setActiveTab('HISTORY')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'HISTORY' ? 'text-red-500 scale-110' : 'text-neutral-500'}`}>
+          <button onClick={() => setActiveTab('HISTORY')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'HISTORY' ? 'text-red-500 scale-105' : 'text-neutral-500'}`}>
             <History size={24} />
             <span className="text-[10px] font-black uppercase tracking-widest">{t.logs}</span>
           </button>
-          <button onClick={() => setActiveTab('SETUP')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'SETUP' ? 'text-red-500 scale-110' : 'text-neutral-500'}`}>
+          <button onClick={() => setActiveTab('SETUP')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'SETUP' ? 'text-red-500 scale-105' : 'text-neutral-500'}`}>
             <Settings size={24} />
             <span className="text-[10px] font-black uppercase tracking-widest">{t.settings}</span>
           </button>
