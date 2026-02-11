@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Trash2, ShieldCheck, Key, MapPin, CheckCircle2, ArrowLeft, Globe, ChevronDown, Mic, AlertCircle, Cloud, Bot, Sparkles } from 'lucide-react';
+import { UserPlus, Trash2, ShieldCheck, Key, MapPin, ArrowLeft, Globe, ChevronDown, Mic, Cloud } from 'lucide-react';
 import { Contact, AppConfig } from '../types';
 import { languages } from '../translations';
 
 interface Props {
-  onComplete: (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string, aiGuardian: boolean) => void;
+  onComplete: (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => void;
   onCancel?: () => void;
   initialConfig?: AppConfig;
   hideHeader?: boolean;
@@ -16,7 +16,6 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
   const [contacts, setContacts] = useState<Contact[]>(initialConfig?.contacts || []);
   const [pin, setPin] = useState(initialConfig?.pin || '');
   const [guardianNetwork, setGuardianNetwork] = useState(initialConfig?.guardianNetwork ?? true);
-  const [aiGuardian, setAiGuardian] = useState(initialConfig?.aiGuardian ?? true);
   const [language, setLanguage] = useState<string>(initialConfig?.language || 'fr');
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
@@ -31,7 +30,6 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
       testMic();
     }
     
-    // Simulation du check DB pour montrer le "match"
     setTimeout(() => {
       setDbState('CONNECTED');
     }, 2000);
@@ -133,7 +131,6 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
       )}
 
       <div className="space-y-6">
-        {/* Cloud Status */}
         <div className={`bg-neutral-900/40 rounded-3xl p-4 border flex items-center justify-between transition-colors ${dbState === 'CONNECTED' ? 'border-blue-500/20' : 'border-white/5'}`}>
            <div className="flex items-center gap-3">
              <Cloud className={dbState === 'CONNECTED' ? 'text-blue-500' : 'text-neutral-500 animate-pulse'} size={20} />
@@ -179,25 +176,6 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
           </section>
         </div>
 
-        {/* AI Guardian Toggle */}
-        <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
-           <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                 <Bot size={18} className="text-blue-500" />
-                 <h2 className="text-sm font-black text-white uppercase">{t.aiGuardian}</h2>
-              </div>
-              <button 
-                onClick={() => setAiGuardian(!aiGuardian)}
-                className={`w-12 h-6 rounded-full transition-all relative ${aiGuardian ? 'bg-blue-600' : 'bg-neutral-800'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${aiGuardian ? 'left-7' : 'left-1'}`}></div>
-              </button>
-           </div>
-           <p className="text-[10px] text-neutral-500 leading-relaxed font-medium">
-             {t.aiGuardianDesc} <Sparkles size={10} className="inline ml-1 text-blue-400" />
-           </p>
-        </section>
-
         <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><Key size={16} className="text-red-500" />{t.pinCode}</h2>
           <input type="password" maxLength={4} inputMode="numeric" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
@@ -226,7 +204,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
           </div>
         </section>
 
-        <button disabled={!isReady} onClick={() => onComplete(contacts, pin, guardianNetwork, language, aiGuardian)} className="w-full bg-red-600 text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
+        <button disabled={!isReady} onClick={() => onComplete(contacts, pin, guardianNetwork, language)} className="w-full bg-red-600 text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
           {initialConfig?.pin ? t.saveChanges : t.activateProtection}
         </button>
       </div>

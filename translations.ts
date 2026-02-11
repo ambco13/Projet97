@@ -55,14 +55,10 @@ export const translations: Record<string, any> = {
     share: "Partager",
     proof: "Preuve",
     map: "Carte",
-    aiGuardian: "Assistant IA",
-    aiGuardianDesc: "Analyse de situation et conseils de sécurité en temps réel.",
     cloudStatus: "Statut Cloud",
     cloudConnected: "Base de données connectée",
     cloudSyncing: "Synchronisation...",
-    cloudOffline: "Mode local (Hors-ligne)",
-    aiAnalyzing: "IA analyse la situation...",
-    aiSafetyAdvice: "CONSEIL DE SÉCURITÉ"
+    cloudOffline: "Mode local (Hors-ligne)"
   },
   en: {
     appTitle: "Project 97",
@@ -112,13 +108,9 @@ export const translations: Record<string, any> = {
     share: "Share",
     proof: "Proof",
     map: "Map",
-    aiGuardian: "AI Guardian",
-    aiGuardianDesc: "Real-time situation analysis and safety tips.",
     cloudStatus: "Cloud Status",
     cloudConnected: "Database Connected",
     cloudSyncing: "Syncing...",
-    cloudOffline: "Local Mode (Offline)",
-    aiAnalyzing: "AI analyzing situation...",
-    aiSafetyAdvice: "SAFETY ADVICE"
+    cloudOffline: "Local Mode (Offline)"
   }
 };

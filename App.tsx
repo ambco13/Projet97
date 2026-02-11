@@ -15,12 +15,14 @@ const GEO_OPTIONS = {
   maximumAge: 0
 };
 
+const SHAKE_THRESHOLD = 15; // Sensibilité du secouement
+
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>('SETUP');
   const stateRef = useRef<AppState>('SETUP');
   const [config, setConfig] = useState<AppConfig>(() => {
     const saved = localStorage.getItem('p97_config');
-    return saved ? JSON.parse(saved) : { pin: '', contacts: [], guardianNetwork: true, language: 'fr', aiGuardian: true };
+    return saved ? JSON.parse(saved) : { pin: '', contacts: [], guardianNetwork: true, language: 'fr' };
   });
   const [logs, setLogs] = useState<EmergencyLog[]>(() => {
     const saved = localStorage.getItem('p97_logs');
@@ -29,6 +31,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'PROTECTED' | 'HISTORY' | 'SETUP'>('PROTECTED');
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const lastShakeTime = useRef<number>(0);
 
   const currentLang = config.language || 'fr';
   const t = translations[currentLang] || translations.fr;
@@ -64,14 +67,13 @@ const App: React.FC = () => {
   const triggerEmergency = useCallback((reason: string) => {
     if (stateRef.current === 'EMERGENCY' || stateRef.current === 'DEACTIVATING') return;
     
-    // Haptic Feedback simulé
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         addLog({
           type: 'TRIGGER',
-          detail: `${reason} (IA Protection ON)`,
+          detail: reason,
           coordinates: { lat: pos.coords.latitude, lng: pos.coords.longitude }
         });
       },
@@ -81,7 +83,32 @@ const App: React.FC = () => {
       GEO_OPTIONS
     );
     setState('EMERGENCY');
-  }, [addLog, config.language]);
+  }, [addLog]);
+
+  // Détection de secousses
+  useEffect(() => {
+    const handleMotion = (event: DeviceMotionEvent) => {
+      if (stateRef.current !== 'PROTECTED') return;
+      
+      const acc = event.accelerationIncludingGravity;
+      if (!acc) return;
+
+      const totalAcc = Math.sqrt((acc.x || 0)**2 + (acc.y || 0)**2 + (acc.z || 0)**2);
+      
+      if (totalAcc > SHAKE_THRESHOLD) {
+        const now = Date.now();
+        if (now - lastShakeTime.current > 1000) { // Throttle
+          lastShakeTime.current = now;
+          triggerEmergency('SHAKE DETECTED');
+        }
+      }
+    };
+
+    if (state === 'PROTECTED') {
+      window.addEventListener('devicemotion', handleMotion);
+    }
+    return () => window.removeEventListener('devicemotion', handleMotion);
+  }, [state, triggerEmergency]);
 
   const startListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -121,8 +148,19 @@ const App: React.FC = () => {
     }
   }, [state, startListening]);
 
-  const handleFinishSetup = (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string, aiGuardian: boolean) => {
-    setConfig({ pin, contacts, guardianNetwork, language, aiGuardian });
+  const handleFinishSetup = (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => {
+    // Demande de permission pour les capteurs de mouvement (iOS requis)
+    if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+      (DeviceMotionEvent as any).requestPermission()
+        .then((permissionState: string) => {
+          if (permissionState === 'granted') {
+             console.log("Motion access granted");
+          }
+        })
+        .catch(console.error);
+    }
+
+    setConfig({ pin, contacts, guardianNetwork, language });
     setState('PROTECTED');
     setActiveTab('PROTECTED');
   };
