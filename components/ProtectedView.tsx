@@ -1,6 +1,6 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Shield, Mic, MapPin, Zap, Users, Globe, Move } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Shield, Mic, MapPin, Zap, Users, Globe, Move, ArrowUpRight, ArrowDownRight, Minus, Activity } from 'lucide-react';
 import { Contact } from '../types';
 
 interface Props {
@@ -16,7 +16,10 @@ interface Props {
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
   const [guardianCount, setGuardianCount] = useState<number | null>(null);
+  const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
+  const [cloudInfo, setCloudInfo] = useState<{latency: string, engine: string} | null>(null);
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
+  const prevCountRef = useRef<number | null>(null);
 
   const [deviceId] = useState(() => {
     const saved = localStorage.getItem('p97_device_id');
@@ -28,6 +31,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
 
   const fetchRealPresence = useCallback(async () => {
     try {
+      const startTime = Date.now();
       const response = await fetch('/.netlify/functions/presence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,20 +40,26 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       
       if (response.ok) {
         const data = await response.json();
+        const endTime = Date.now();
+        prevCountRef.current = guardianCount;
         setGuardianCount(data.count);
+        setTrend(data.trend);
+        setCloudInfo({
+          latency: `${endTime - startTime}ms`,
+          engine: data.engine
+        });
         setDbStatus('LIVE');
       } else {
         setDbStatus('OFFLINE');
       }
     } catch (err) {
-      console.error("DB Sync Error:", err);
       setDbStatus('OFFLINE');
     }
-  }, [deviceId]);
+  }, [deviceId, guardianCount]);
 
   useEffect(() => {
     fetchRealPresence();
-    const hbInterval = setInterval(fetchRealPresence, 30000);
+    const hbInterval = setInterval(fetchRealPresence, 20000);
     const pulseInterval = setInterval(() => setPulse(p => !p), 2000);
     return () => {
       clearInterval(hbInterval);
@@ -72,26 +82,34 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
           </div>
 
           {guardianNetwork && (
-            <div className={`absolute -bottom-4 z-20 px-4 py-2 rounded-full border flex items-center gap-2 shadow-xl transition-all duration-500 whitespace-nowrap ${
+            <div className={`absolute -bottom-4 z-20 px-4 py-2 rounded-full border flex flex-col items-center shadow-xl transition-all duration-500 whitespace-nowrap ${
               dbStatus === 'LIVE' ? 'bg-blue-600 border-blue-400/30' : 'bg-neutral-800 border-white/10 opacity-80'
             }`}>
               {dbStatus === 'CONNECTING' ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 py-1 px-2">
                   <Globe size={12} className="text-white/50 animate-spin" />
-                  <span className="text-[8px] font-black text-white/80 uppercase tracking-tighter">Linking DB...</span>
+                  <span className="text-[8px] font-black text-white/80 uppercase tracking-tighter">Syncing...</span>
                 </div>
               ) : (
-                <>
-                  <div className="relative flex items-center justify-center">
-                    <div className={`absolute w-2.5 h-2.5 rounded-full animate-ping ${dbStatus === 'LIVE' ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                    <div className={`relative w-1.5 h-1.5 rounded-full ${dbStatus === 'LIVE' ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-1.5 px-2 py-1">
+                    <Users size={12} className="text-white shrink-0" />
+                    <span className="text-[11px] font-black text-white tabular-nums animate-in fade-in slide-in-from-bottom-1">
+                      {guardianCount ?? '--'}
+                    </span>
+                    <div className="flex flex-col items-center ml-0.5">
+                      {trend === 'up' && <ArrowUpRight size={10} className="text-green-300 animate-bounce" />}
+                      {trend === 'down' && <ArrowDownRight size={10} className="text-red-300 animate-bounce" />}
+                      {trend === 'stable' && <Minus size={10} className="text-white/40" />}
+                    </div>
                   </div>
-                  <Users size={12} className="text-white shrink-0" />
-                  <span className="text-[9px] font-black text-white uppercase tracking-wider tabular-nums">
-                    {guardianCount ?? '--'} {t.guardianNet}
-                  </span>
-                  <span className="text-[7px] font-black text-white/40 uppercase ml-1">LIVE</span>
-                </>
+                  {cloudInfo && (
+                    <div className="flex items-center gap-2 px-3 pb-1 border-t border-white/10 w-full justify-center">
+                       <Activity size={8} className="text-blue-200" />
+                       <span className="text-[6px] font-bold text-white/70 uppercase tracking-widest">{cloudInfo.latency}</span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -131,6 +149,13 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       </div>
 
       <div className="space-y-4">
+        {cloudInfo && (
+          <div className="flex justify-between items-center px-4 opacity-30 text-white font-mono text-[7px] uppercase tracking-tighter">
+            <span>{t.engine}: {cloudInfo.engine}</span>
+            <span>SID: {deviceId.slice(0,8)}</span>
+          </div>
+        )}
+        
         <div className="bg-neutral-900/60 p-5 rounded-[1.5rem] border border-white/5 flex items-center gap-4">
           <div className="bg-red-500/10 p-3 rounded-xl shrink-0">
             <Zap className="text-red-500" size={18} />

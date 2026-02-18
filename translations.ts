@@ -58,7 +58,9 @@ export const translations: Record<string, any> = {
     cloudStatus: "Statut Cloud",
     cloudConnected: "Base de données connectée",
     cloudSyncing: "Synchronisation...",
-    cloudOffline: "Mode local (Hors-ligne)"
+    cloudOffline: "Mode local (Hors-ligne)",
+    latency: "Latence",
+    engine: "Moteur"
   },
   en: {
     appTitle: "Project 97",
@@ -111,6 +113,8 @@ export const translations: Record<string, any> = {
     cloudStatus: "Cloud Status",
     cloudConnected: "Database Connected",
     cloudSyncing: "Syncing...",
-    cloudOffline: "Local Mode (Offline)"
+    cloudOffline: "Local Mode (Offline)",
+    latency: "Latency",
+    engine: "Engine"
   }
 };
