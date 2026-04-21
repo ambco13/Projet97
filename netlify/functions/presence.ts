@@ -1,55 +1,120 @@
-
 import { Handler } from '@netlify/functions';
 
+const getDatabaseUrl = () =>
+  process.env.NETLIFY_DATABASE_URL ||
+  process.env.NETLIFY_DATABASE_URL_UNPOOLED ||
+  process.env.DATABASE_URL ||
+  '';
+
+let poolPromise: Promise<any> | null = null;
+
+const getPool = async () => {
+  if (poolPromise) return poolPromise;
+
+  const connectionString = getDatabaseUrl();
+  if (!connectionString) return null;
+
+  poolPromise = (async () => {
+    const pg = await import('pg');
+    const Pool = (pg as any).Pool;
+    return new Pool({ connectionString });
+  })();
+
+  return poolPromise;
+};
+
 export const handler: Handler = async (event) => {
-  // Simule une lecture de variable d'environnement pour une DB
-  const DB_CONNECTED = process.env.DATABASE_URL ? true : false;
-  
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  } as const;
+
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
+  const { deviceId = 'anonymous_device' } = JSON.parse(event.body || '{}');
+  const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
+
   try {
-    const { deviceId } = JSON.parse(event.body || '{}');
-    const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
-    
-    // Simulation de latence de lecture DB (entre 100ms et 300ms)
-    await new Promise(r => setTimeout(r, 150 + Math.random() * 150));
+    const db = await getPool();
+    if (!db) {
+      return {
+        statusCode: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'DATABASE_URL_NOT_CONFIGURED',
+          detail: 'NETLIFY_DATABASE_URL / NETLIFY_DATABASE_URL_UNPOOLED is missing.',
+        }),
+      };
+    }
 
-    const now = new Date();
-    const timeSeed = Math.floor(now.getTime() / 60000); 
-    const deviceSeed = deviceId ? deviceId.split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) : 0;
+    const startedAt = Date.now();
 
-    // --- LOGIQUE DE BASE DE DONNÉES (CONCEPTUELLE) ---
-    // Si DB_CONNECTED était vrai, on ferait :
-    // await db.query("INSERT INTO presence (device_id, ip, last_seen) VALUES ($1, $2, NOW()) ON CONFLICT...", [deviceId, userIP])
-    // const count = await db.query("SELECT count(*) FROM presence WHERE last_seen > NOW() - INTERVAL '5 minutes'")
-    // --------------------------------------------------
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS presence (
+        device_id TEXT PRIMARY KEY,
+        ip TEXT,
+        last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
 
-    const hours = now.getHours();
-    let baseCount = 700;
-    if (hours >= 18 && hours <= 23) baseCount = 850;
-    if (hours >= 0 && hours <= 5) baseCount = 320;
-    
-    const globalFluc = Math.floor(Math.sin(timeSeed) * 15);
-    const personalVariation = (deviceSeed % 11) - 5;
-    const finalCount = baseCount + globalFluc + personalVariation;
+    await db.query(
+      `
+        INSERT INTO presence (device_id, ip, last_seen)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (device_id)
+        DO UPDATE SET
+          ip = EXCLUDED.ip,
+          last_seen = NOW()
+      `,
+      [deviceId, userIP],
+    );
+
+    const countResult = await db.query(
+      `
+        SELECT COUNT(*)::int AS count
+        FROM presence
+        WHERE last_seen > NOW() - INTERVAL '5 minutes'
+      `,
+    );
+
+    const finalCount = Number(countResult.rows?.[0]?.count ?? 0);
 
     return {
       statusCode: 200,
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        count: finalCount, 
-        trend: globalFluc > Math.sin(timeSeed - 1) * 15 ? 'up' : 'down',
-        engine: DB_CONNECTED ? 'PRODUCTION_CLUSTER' : 'SIMULATED_CLOUD',
-        latency: "154ms",
-        session_id: `p97_${deviceSeed.toString(16)}`,
-        ip_mask: userIP.replace(/\.\d+$/, ".***")
+      body: JSON.stringify({
+        count: finalCount,
+        trend: 'stable',
+        engine: 'NETLIFY_POSTGRES',
+        latency: `${Date.now() - startedAt}ms`,
+        session_id: `p97_${Buffer.from(deviceId).toString('hex').slice(0, 12)}`,
+        ip_mask: userIP.replace(/\.\d+$/, '.***'),
       }),
     };
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Cloud Sync Error" }),
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        error: 'DB_RUNTIME_ERROR',
+        detail: error instanceof Error ? error.message : 'Unknown DB error',
+      }),
     };
   }
 };
