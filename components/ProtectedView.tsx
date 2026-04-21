@@ -15,7 +15,7 @@ interface Props {
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
-  const [guardianCount, setGuardianCount] = useState<number | null>(null);
+  const [guardianCount, setGuardianCount] = useState<number>(0);
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
   const [cloudInfo, setCloudInfo] = useState<{latency: string, engine: string} | null>(null);
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
@@ -59,26 +59,16 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         }
       } else {
         const endTime = Date.now();
-        let errorCode = `HTTP_${response.status}`;
-
-        try {
-          const errorBody = await response.json();
-          errorCode = errorBody?.error || errorBody?.detail || errorCode;
-        } catch (_) {
-          // Ignore JSON parse errors and keep HTTP code fallback.
-        }
-
         setTrend('stable');
         setCloudInfo({
           latency: `${endTime - startTime}ms`,
-          engine: `OFFLINE_${errorCode}`
+          engine: `OFFLINE_${response.status}`
         });
         setDbStatus('OFFLINE');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'ERROR';
       setTrend('stable');
-      setCloudInfo({ latency: 'timeout', engine: `OFFLINE_${message}` });
+      setCloudInfo({ latency: 'timeout', engine: 'OFFLINE_ERROR' });
       setDbStatus('OFFLINE');
     }
   }, [deviceId, guardianCount]);

@@ -15,7 +15,8 @@ const getPool = async () => {
   if (!connectionString) return null;
 
   poolPromise = (async () => {
-    const pg = await import('pg');
+    const pgModuleName = 'pg';
+    const pg = await import(pgModuleName);
     const Pool = (pg as any).Pool;
     return new Pool({ connectionString });
   })();
@@ -38,10 +39,10 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  const { deviceId = 'anonymous_device' } = JSON.parse(event.body || '{}');
-  const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
-
   try {
+    const { deviceId = 'anonymous_device' } = JSON.parse(event.body || '{}');
+    const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
+
     const db = await getPool();
     if (!db) {
       return {
@@ -52,7 +53,8 @@ export const handler: Handler = async (event) => {
         },
         body: JSON.stringify({
           error: 'DATABASE_URL_NOT_CONFIGURED',
-          detail: 'NETLIFY_DATABASE_URL / NETLIFY_DATABASE_URL_UNPOOLED is missing.',
+          message:
+            'Set NETLIFY_DATABASE_URL or NETLIFY_DATABASE_URL_UNPOOLED in environment variables.',
         }),
       };
     }
@@ -112,8 +114,8 @@ export const handler: Handler = async (event) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        error: 'DB_RUNTIME_ERROR',
-        detail: error instanceof Error ? error.message : 'Unknown DB error',
+        error: 'Cloud Sync Error',
+        detail: error instanceof Error ? error.message : 'Unknown error',
       }),
     };
   }
