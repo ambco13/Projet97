@@ -19,7 +19,7 @@ interface PresenceResponse {
   latency?: string;
 }
 
-const PRESENCE_ENDPOINT = '/.netlify/functions/presence';
+const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
 const POLL_INTERVAL_MS = 30000;
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
@@ -70,21 +70,34 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       const deviceIdKey = 'p97_device_id';
       let deviceId = localStorage.getItem(deviceIdKey);
       if (!deviceId) {
-        deviceId = `p97_${crypto.randomUUID()}`;
+        const uuid = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+        deviceId = `p97_${uuid}`;
         localStorage.setItem(deviceIdKey, deviceId);
       }
 
       try {
-        const response = await fetch(PRESENCE_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ deviceId }),
-        });
+        let response: Response | null = null;
+        for (const endpoint of PRESENCE_ENDPOINTS) {
+          try {
+            const candidate = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ deviceId }),
+            });
 
-        if (!response.ok) {
-          throw new Error(`Presence API failed with status ${response.status}`);
+            if (candidate.ok) {
+              response = candidate;
+              break;
+            }
+          } catch (fetchError) {
+            // Continue to next endpoint
+          }
+        }
+
+        if (!response) {
+          throw new Error('Presence API is unreachable on all known endpoints');
         }
 
         const data = (await response.json()) as PresenceResponse;
