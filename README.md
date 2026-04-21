@@ -20,6 +20,9 @@ View your app in AI Studio: https://ai.studio/apps/drive/157ltf4KM_wA2ZfBowJDiYB
 
 ## Présence communautaire (mode réel + fallback local)
 
+Ici, "l'API" = la **Netlify Function interne** du projet : `/.netlify/functions/presence`.
+Ce n'est pas une API externe Google payante ; c'est un endpoint backend de ton app pour compter les appareils actifs.
+
 Par défaut, l'application tente d'utiliser `/.netlify/functions/presence` (Netlify + PostgreSQL) pour afficher la présence communautaire en temps réel.
 
 - si l'API répond, l'interface affiche le moteur `NETLIFY_POSTGRES` ;
