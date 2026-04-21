@@ -10,6 +10,13 @@ const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
 const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
 
 let poolPromise: Promise<any> | null = null;
+const toSessionId = (rawDeviceId: string) => {
+  let hash = 0;
+  for (let i = 0; i < rawDeviceId.length; i += 1) {
+    hash = (hash * 31 + rawDeviceId.charCodeAt(i)) >>> 0;
+  }
+  return `p97_${hash.toString(16).padStart(8, '0')}`;
+};
 
 const getPool = async () => {
   if (poolPromise) return poolPromise;
@@ -116,7 +123,7 @@ export const handler: Handler = async (event) => {
         trend: 'stable',
         engine: 'NETLIFY_POSTGRES',
         latency: `${Date.now() - startedAt}ms`,
-        session_id: `p97_${Buffer.from(deviceId).toString('hex').slice(0, 12)}`,
+        session_id: toSessionId(deviceId),
         ip_mask: userIP.replace(/\.\d+$/, '.***'),
       }),
     };
