@@ -6,6 +6,9 @@ const getDatabaseUrl = () =>
   process.env.DATABASE_URL ||
   '';
 
+const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
+const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
+
 let poolPromise: Promise<any> | null = null;
 
 const getPool = async () => {
@@ -51,6 +54,7 @@ export const handler: Handler = async (event) => {
     const db = await getPool();
 
     if (!db) {
+      const count = registerInMemoryPresence(deviceId, userIP);
       return {
         statusCode: 503,
         headers: {
