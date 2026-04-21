@@ -19,6 +19,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
   const [cloudInfo, setCloudInfo] = useState<{latency: string, engine: string} | null>(null);
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
+  const [hasLiveData, setHasLiveData] = useState(false);
   const prevCountRef = useRef<number | null>(null);
 
   const [deviceId] = useState(() => {
@@ -41,18 +42,43 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       if (response.ok) {
         const data = await response.json();
         const endTime = Date.now();
-        prevCountRef.current = guardianCount;
-        setGuardianCount(data.count);
-        setTrend(data.trend);
+        const parsedCount = Number(data?.count);
+
+        if (Number.isFinite(parsedCount)) {
+          prevCountRef.current = guardianCount;
+          setGuardianCount(parsedCount);
+          setHasLiveData(true);
+          setTrend(data?.trend === 'up' || data?.trend === 'down' ? data.trend : 'stable');
+          setCloudInfo({
+            latency: `${endTime - startTime}ms`,
+            engine: data?.engine || 'UNKNOWN'
+          });
+          setDbStatus('LIVE');
+        } else {
+          setDbStatus('OFFLINE');
+        }
+      } else {
+        const endTime = Date.now();
+        let errorCode = `HTTP_${response.status}`;
+
+        try {
+          const errorBody = await response.json();
+          errorCode = errorBody?.error || errorBody?.detail || errorCode;
+        } catch (_) {
+          // Ignore JSON parse errors and keep HTTP code fallback.
+        }
+
+        setTrend('stable');
         setCloudInfo({
           latency: `${endTime - startTime}ms`,
-          engine: data.engine
+          engine: `OFFLINE_${errorCode}`
         });
-        setDbStatus('LIVE');
-      } else {
         setDbStatus('OFFLINE');
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'ERROR';
+      setTrend('stable');
+      setCloudInfo({ latency: 'timeout', engine: `OFFLINE_${message}` });
       setDbStatus('OFFLINE');
     }
   }, [deviceId, guardianCount]);
@@ -95,7 +121,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
                   <div className="flex items-center gap-1.5 px-2 py-1">
                     <Users size={12} className="text-white shrink-0" />
                     <span className="text-[11px] font-black text-white tabular-nums animate-in fade-in slide-in-from-bottom-1">
-                      {guardianCount ?? '--'}
+                      {hasLiveData ? guardianCount : 'N/A'}
                     </span>
                     <div className="flex flex-col items-center ml-0.5">
                       {trend === 'up' && <ArrowUpRight size={10} className="text-green-300 animate-bounce" />}
@@ -151,7 +177,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       <div className="space-y-4">
         {cloudInfo && (
           <div className="flex justify-between items-center px-4 opacity-30 text-white font-mono text-[7px] uppercase tracking-tighter">
-            <span>{t.engine}: {cloudInfo.engine}</span>
+            <span>{t.engine}: {cloudInfo.engine} {dbStatus === 'OFFLINE' ? '(offline)' : ''}</span>
             <span>SID: {deviceId.slice(0,8)}</span>
           </div>
         )}
