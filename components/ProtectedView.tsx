@@ -59,16 +59,26 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         }
       } else {
         const endTime = Date.now();
+        let errorCode = `HTTP_${response.status}`;
+
+        try {
+          const errorBody = await response.json();
+          errorCode = errorBody?.error || errorBody?.detail || errorCode;
+        } catch (_) {
+          // Ignore JSON parse errors and keep HTTP code fallback.
+        }
+
         setTrend('stable');
         setCloudInfo({
           latency: `${endTime - startTime}ms`,
-          engine: `OFFLINE_${response.status}`
+          engine: `OFFLINE_${errorCode}`
         });
         setDbStatus('OFFLINE');
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'ERROR';
       setTrend('stable');
-      setCloudInfo({ latency: 'timeout', engine: 'OFFLINE_ERROR' });
+      setCloudInfo({ latency: 'timeout', engine: `OFFLINE_${message}` });
       setDbStatus('OFFLINE');
     }
   }, [deviceId, guardianCount]);
