@@ -31,19 +31,6 @@ const getPool = async () => {
   }
 };
 
-const registerInMemoryPresence = (deviceId: string, userIP: string) => {
-  const now = Date.now();
-  inMemoryPresence.set(deviceId, { ip: userIP, lastSeen: now });
-
-  for (const [id, item] of inMemoryPresence.entries()) {
-    if (now - item.lastSeen > PRESENCE_WINDOW_MS) {
-      inMemoryPresence.delete(id);
-    }
-  }
-
-  return inMemoryPresence.size;
-};
-
 export const handler: Handler = async (event) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -99,6 +86,13 @@ export const handler: Handler = async (event) => {
           last_seen = NOW()
       `,
       [deviceId, userIP],
+    );
+
+    await db.query(
+      `
+        DELETE FROM presence
+        WHERE last_seen <= NOW() - INTERVAL '5 minutes'
+      `,
     );
 
     const countResult = await db.query(
