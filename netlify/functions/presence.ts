@@ -6,6 +6,9 @@ const getDatabaseUrl = () =>
   process.env.DATABASE_URL ||
   '';
 
+const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
+const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
+
 let poolPromise: Promise<any> | null = null;
 
 const getPool = async () => {
@@ -14,14 +17,32 @@ const getPool = async () => {
   const connectionString = getDatabaseUrl();
   if (!connectionString) return null;
 
-  poolPromise = (async () => {
-    const pgModuleName = 'pg';
-    const pg = await import(pgModuleName);
-    const Pool = (pg as any).Pool;
-    return new Pool({ connectionString });
-  })();
+  try {
+    poolPromise = (async () => {
+      const pgModuleName = 'pg';
+      const pg = await import(pgModuleName);
+      const Pool = (pg as any).Pool;
+      return new Pool({ connectionString });
+    })();
 
-  return poolPromise;
+    return poolPromise;
+  } catch (error) {
+    poolPromise = null;
+    return null;
+  }
+};
+
+const registerInMemoryPresence = (deviceId: string, userIP: string) => {
+  const now = Date.now();
+  inMemoryPresence.set(deviceId, { ip: userIP, lastSeen: now });
+
+  for (const [id, item] of inMemoryPresence.entries()) {
+    if (now - item.lastSeen > PRESENCE_WINDOW_MS) {
+      inMemoryPresence.delete(id);
+    }
+  }
+
+  return inMemoryPresence.size;
 };
 
 export const handler: Handler = async (event) => {
@@ -43,23 +64,26 @@ export const handler: Handler = async (event) => {
     const { deviceId = 'anonymous_device' } = JSON.parse(event.body || '{}');
     const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
 
+    const startedAt = Date.now();
     const db = await getPool();
+
     if (!db) {
+      const count = registerInMemoryPresence(deviceId, userIP);
       return {
-        statusCode: 500,
+        statusCode: 200,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          error: 'DATABASE_URL_NOT_CONFIGURED',
-          message:
-            'Set NETLIFY_DATABASE_URL or NETLIFY_DATABASE_URL_UNPOOLED in environment variables.',
+          count,
+          trend: 'stable',
+          engine: 'NETLIFY_FUNCTION_MEMORY',
+          latency: `${Date.now() - startedAt}ms`,
+          storage: 'memory-fallback',
         }),
       };
     }
-
-    const startedAt = Date.now();
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS presence (
