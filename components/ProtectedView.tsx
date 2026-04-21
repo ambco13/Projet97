@@ -15,7 +15,7 @@ interface Props {
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
-  const [guardianCount, setGuardianCount] = useState<number | null>(null);
+  const [guardianCount, setGuardianCount] = useState<number>(0);
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
   const [cloudInfo, setCloudInfo] = useState<{latency: string, engine: string} | null>(null);
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
@@ -41,18 +41,30 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       if (response.ok) {
         const data = await response.json();
         const endTime = Date.now();
+        const parsedCount = Number(data?.count);
+
         prevCountRef.current = guardianCount;
-        setGuardianCount(data.count);
-        setTrend(data.trend);
+        setGuardianCount(Number.isFinite(parsedCount) ? parsedCount : 0);
+        setTrend(data?.trend === 'up' || data?.trend === 'down' ? data.trend : 'stable');
         setCloudInfo({
           latency: `${endTime - startTime}ms`,
-          engine: data.engine
+          engine: data?.engine || 'UNKNOWN'
         });
         setDbStatus('LIVE');
       } else {
+        const endTime = Date.now();
+        setGuardianCount(0);
+        setTrend('stable');
+        setCloudInfo({
+          latency: `${endTime - startTime}ms`,
+          engine: `OFFLINE_${response.status}`
+        });
         setDbStatus('OFFLINE');
       }
     } catch (err) {
+      setGuardianCount(0);
+      setTrend('stable');
+      setCloudInfo({ latency: 'timeout', engine: 'OFFLINE_ERROR' });
       setDbStatus('OFFLINE');
     }
   }, [deviceId, guardianCount]);
@@ -95,7 +107,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
                   <div className="flex items-center gap-1.5 px-2 py-1">
                     <Users size={12} className="text-white shrink-0" />
                     <span className="text-[11px] font-black text-white tabular-nums animate-in fade-in slide-in-from-bottom-1">
-                      {guardianCount ?? '--'}
+                      {guardianCount}
                     </span>
                     <div className="flex flex-col items-center ml-0.5">
                       {trend === 'up' && <ArrowUpRight size={10} className="text-green-300 animate-bounce" />}
