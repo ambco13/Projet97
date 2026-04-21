@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Shield, Mic, MapPin, Zap, Users, Globe, Move, ArrowUpRight, ArrowDownRight, Minus, Activity } from 'lucide-react';
 import { Contact } from '../types';
 
@@ -17,71 +17,30 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   const [pulse, setPulse] = useState(false);
   const [guardianCount, setGuardianCount] = useState<number>(0);
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
-  const [cloudInfo, setCloudInfo] = useState<{latency: string, engine: string} | null>(null);
-  const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
-  const [hasLiveData, setHasLiveData] = useState(false);
-  const prevCountRef = useRef<number | null>(null);
-
-  const [deviceId] = useState(() => {
-    const saved = localStorage.getItem('p97_device_id');
-    if (saved) return saved;
-    const newId = 'dev_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('p97_device_id', newId);
-    return newId;
+  const [cloudInfo, setCloudInfo] = useState<{latency: string, engine: string} | null>({
+    latency: 'local',
+    engine: 'LOCAL_ONLY'
   });
-
-  const fetchRealPresence = useCallback(async () => {
-    try {
-      const startTime = Date.now();
-      const response = await fetch('/.netlify/functions/presence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceId })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const endTime = Date.now();
-        const parsedCount = Number(data?.count);
-
-        if (Number.isFinite(parsedCount)) {
-          prevCountRef.current = guardianCount;
-          setGuardianCount(parsedCount);
-          setHasLiveData(true);
-          setTrend(data?.trend === 'up' || data?.trend === 'down' ? data.trend : 'stable');
-          setCloudInfo({
-            latency: `${endTime - startTime}ms`,
-            engine: data?.engine || 'UNKNOWN'
-          });
-          setDbStatus('LIVE');
-        } else {
-          setDbStatus('OFFLINE');
-        }
-      } else {
-        const endTime = Date.now();
-        setTrend('stable');
-        setCloudInfo({
-          latency: `${endTime - startTime}ms`,
-          engine: `OFFLINE_${response.status}`
-        });
-        setDbStatus('OFFLINE');
-      }
-    } catch (err) {
-      setTrend('stable');
-      setCloudInfo({ latency: 'timeout', engine: 'OFFLINE_ERROR' });
-      setDbStatus('OFFLINE');
-    }
-  }, [deviceId, guardianCount]);
+  const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('LIVE');
+  const hasLiveData = true;
 
   useEffect(() => {
-    fetchRealPresence();
-    const hbInterval = setInterval(fetchRealPresence, 20000);
     const pulseInterval = setInterval(() => setPulse(p => !p), 2000);
     return () => {
-      clearInterval(hbInterval);
       clearInterval(pulseInterval);
     };
-  }, [fetchRealPresence]);
+  }, []);
+
+  useEffect(() => {
+    const localCount = Math.max(1, contacts.length + 1);
+    setTrend(localCount > guardianCount ? 'up' : localCount < guardianCount ? 'down' : 'stable');
+    setGuardianCount(localCount);
+    setCloudInfo({
+      latency: 'local',
+      engine: 'LOCAL_ONLY'
+    });
+    setDbStatus('LIVE');
+  }, [contacts.length, guardianCount]);
 
   return (
     <div className="flex flex-col p-6 pb-40 animate-in fade-in zoom-in-95 duration-700">
@@ -167,8 +126,8 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       <div className="space-y-4">
         {cloudInfo && (
           <div className="flex justify-between items-center px-4 opacity-30 text-white font-mono text-[7px] uppercase tracking-tighter">
-            <span>{t.engine}: {cloudInfo.engine} {dbStatus === 'OFFLINE' ? '(offline)' : ''}</span>
-            <span>SID: {deviceId.slice(0,8)}</span>
+            <span>{t.engine}: {cloudInfo.engine}</span>
+            <span>MODE: LOCAL</span>
           </div>
         )}
         

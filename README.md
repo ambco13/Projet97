@@ -10,11 +10,21 @@ View your app in AI Studio: https://ai.studio/apps/drive/157ltf4KM_wA2ZfBowJDiYB
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key.
 3. Run the app:
    `npm run dev`
+
+## Mode local (sans API payante)
+
+L'application peut fonctionner sans backend/DB :
+
+- aucun endpoint externe n'est requis pour afficher l'interface ;
+- le compteur communautaire est calculé localement dans l'app ;
+- aucun paramétrage `DATABASE_URL` n'est nécessaire pour l'usage local.
+
+> ⚠️ En mode local, il n'y a pas de synchronisation temps réel entre navigateurs/appareils.
+> L'alerte ouvre l'application SMS du téléphone pour envoyer le message aux contacts.

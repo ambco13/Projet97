@@ -16,6 +16,7 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
   const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
   const voiceTimerRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
+  const autoOpenedRef = useRef(false);
 
   const startTracking = () => {
     if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
@@ -30,19 +31,24 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
     if (!coords) return;
     const url = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
     const message = `${t.sosActive}! Location: ${url}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: t.sosActive, text: message, url: url });
-      } catch (err) { sendSMSFallback(message); }
-    } else { sendSMSFallback(message); }
+    sendSMSFallback(message);
   };
 
   const sendSMSFallback = (message: string) => {
+    if (!contacts.length) return;
     const phones = contacts.map(c => c.phone).join(',');
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const smsUrl = isIOS ? `sms:${phones}&body=${encodeURIComponent(message)}` : `sms:${phones}?body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
   };
+
+  useEffect(() => {
+    if (!coords || autoOpenedRef.current || contacts.length === 0) return;
+    autoOpenedRef.current = true;
+    const url = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
+    const message = `${t.sosActive}! Location: ${url}`;
+    sendSMSFallback(message);
+  }, [coords, contacts.length, t.sosActive]);
 
   useEffect(() => {
     const timer = setInterval(() => setSeconds(s => s + 1), 1000);
