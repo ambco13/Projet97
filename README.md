@@ -18,14 +18,10 @@ View your app in AI Studio: https://ai.studio/apps/drive/157ltf4KM_wA2ZfBowJDiYB
 3. Run the app:
    `npm run dev`
 
-## Présence communautaire (mode réel + fallback local)
+## Mode local (sans API payante)
 
-Ici, "l'API" = la **Netlify Function interne** du projet : `/.netlify/functions/presence`.
-Ce n'est pas une API externe Google payante ; c'est un endpoint backend de ton app pour compter les appareils actifs.
+L'application peut fonctionner sans backend/DB :
 
-Par défaut, l'application tente d'utiliser `/.netlify/functions/presence` (Netlify + PostgreSQL) pour afficher la présence communautaire en temps réel.
-
-- si l'API répond, l'interface affiche le moteur `NETLIFY_POSTGRES` ;
-- si l'API échoue, l'app bascule automatiquement en `LOCAL_FALLBACK` pour rester utilisable.
-
-> ⚠️ Le mode fallback local ne synchronise pas plusieurs navigateurs/appareils.
+- aucun endpoint externe n'est requis pour afficher l'interface ;
+- le compteur communautaire est calculé localement dans l'app ;
+- aucun paramétrage `DATABASE_URL` n'est nécessaire pour l'usage local.
