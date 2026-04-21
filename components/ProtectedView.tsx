@@ -15,7 +15,7 @@ interface Props {
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
-  const [guardianCount, setGuardianCount] = useState<number | null>(null);
+  const [guardianCount, setGuardianCount] = useState<number>(0);
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
   const [cloudInfo, setCloudInfo] = useState<{latency: string, engine: string} | null>(null);
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
