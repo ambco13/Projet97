@@ -53,8 +53,25 @@ export const handler: Handler = async (event) => {
     };
   }
 
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        error: 'METHOD_NOT_ALLOWED',
+        detail: 'Use POST to sync presence.',
+      }),
+    };
+  }
+
   try {
-    const { deviceId = 'anonymous_device' } = JSON.parse(event.body || '{}');
+    const body = JSON.parse(event.body || '{}') as { deviceId?: unknown };
+    const deviceId = typeof body.deviceId === 'string' && body.deviceId.trim().length > 0
+      ? body.deviceId.trim()
+      : 'anonymous_device';
     const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
 
     const startedAt = Date.now();
@@ -135,7 +152,7 @@ export const handler: Handler = async (event) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        error: 'Cloud Sync Error',
+        error: 'CLOUD_SYNC_ERROR',
         detail: error instanceof Error ? error.message : 'Unknown error',
       }),
     };
