@@ -45,6 +45,19 @@ const registerInMemoryPresence = (deviceId: string, userIP: string) => {
   return inMemoryPresence.size;
 };
 
+const registerInMemoryPresence = (deviceId: string, userIP: string) => {
+  const now = Date.now();
+  inMemoryPresence.set(deviceId, { ip: userIP, lastSeen: now });
+
+  for (const [id, item] of inMemoryPresence.entries()) {
+    if (now - item.lastSeen > PRESENCE_WINDOW_MS) {
+      inMemoryPresence.delete(id);
+    }
+  }
+
+  return inMemoryPresence.size;
+};
+
 export const handler: Handler = async (event) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
