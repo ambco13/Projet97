@@ -14,14 +14,18 @@ const getPool = async () => {
   const connectionString = getDatabaseUrl();
   if (!connectionString) return null;
 
-  poolPromise = (async () => {
-    const pgModuleName = 'pg';
-    const pg = await import(pgModuleName);
-    const Pool = (pg as any).Pool;
-    return new Pool({ connectionString });
-  })();
+  try {
+    poolPromise = (async () => {
+      const pg = await import('pg');
+      const Pool = (pg as any).Pool;
+      return new Pool({ connectionString });
+    })();
 
-  return poolPromise;
+    return poolPromise;
+  } catch {
+    poolPromise = null;
+    return null;
+  }
 };
 
 export const handler: Handler = async (event) => {
@@ -43,23 +47,22 @@ export const handler: Handler = async (event) => {
     const { deviceId = 'anonymous_device' } = JSON.parse(event.body || '{}');
     const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
 
+    const startedAt = Date.now();
     const db = await getPool();
+
     if (!db) {
       return {
-        statusCode: 500,
+        statusCode: 503,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          error: 'DATABASE_URL_NOT_CONFIGURED',
-          message:
-            'Set NETLIFY_DATABASE_URL or NETLIFY_DATABASE_URL_UNPOOLED in environment variables.',
+          error: 'CLOUD_DATABASE_UNAVAILABLE',
+          detail: 'Presence requires a configured and reachable Postgres database.',
         }),
       };
     }
-
-    const startedAt = Date.now();
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS presence (
@@ -79,6 +82,13 @@ export const handler: Handler = async (event) => {
           last_seen = NOW()
       `,
       [deviceId, userIP],
+    );
+
+    await db.query(
+      `
+        DELETE FROM presence
+        WHERE last_seen <= NOW() - INTERVAL '5 minutes'
+      `,
     );
 
     const countResult = await db.query(
