@@ -10,6 +10,7 @@ const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
 const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
 
 let poolPromise: Promise<any> | null = null;
+const ACTIVE_WINDOW_SQL = "60 seconds";
 const toSessionId = (rawDeviceId: string) => {
   let hash = 0;
   for (let i = 0; i < rawDeviceId.length; i += 1) {
@@ -115,7 +116,7 @@ export const handler: Handler = async (event) => {
     await db.query(
       `
         DELETE FROM presence
-        WHERE last_seen <= NOW() - INTERVAL '5 minutes'
+        WHERE last_seen <= NOW() - INTERVAL '${ACTIVE_WINDOW_SQL}'
       `,
     );
 
@@ -123,7 +124,7 @@ export const handler: Handler = async (event) => {
       `
         SELECT COUNT(*)::int AS count
         FROM presence
-        WHERE last_seen > NOW() - INTERVAL '5 minutes'
+        WHERE last_seen > NOW() - INTERVAL '${ACTIVE_WINDOW_SQL}'
       `,
     );
 

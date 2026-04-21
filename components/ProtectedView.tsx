@@ -20,7 +20,7 @@ interface PresenceResponse {
 }
 
 const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
-const POLL_INTERVAL_MS = 30000;
+const POLL_INTERVAL_MS = 10000;
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
