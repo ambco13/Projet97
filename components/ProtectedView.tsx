@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Shield, Mic, MapPin, Zap, Users, Globe, Move, ArrowUpRight, ArrowDownRight, Minus, Activity } from 'lucide-react';
 import { Contact } from '../types';
 
@@ -27,23 +27,18 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   const [guardianCount, setGuardianCount] = useState<number>(0);
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
   const [cloudInfo, setCloudInfo] = useState<{ latency: string; engine: string } | null>({
-    latency: 'local',
-    engine: 'LOCAL_ONLY',
+    latency: 'connecting',
+    engine: 'CLOUD_CONNECTING',
   });
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
-
-  const localFallbackCount = useMemo(() => Math.max(1, contacts.length), [contacts.length]);
+  const previousCountRef = useRef(0);
 
   useEffect(() => {
     const pulseInterval = setInterval(() => setPulse((p) => !p), 2000);
-    return () => {
-      clearInterval(pulseInterval);
-    };
+    return () => clearInterval(pulseInterval);
   }, []);
 
   useEffect(() => {
-    const previousCountRef = { current: 0 };
-
     const updateTrend = (nextCount: number) => {
       const previousCount = previousCountRef.current;
       if (nextCount > previousCount) setTrend('up');
@@ -52,16 +47,16 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       previousCountRef.current = nextCount;
     };
 
-    const setLocalMode = () => {
+    const setCloudUnavailable = (reason: string) => {
       setDbStatus('OFFLINE');
-      setCloudInfo({ latency: 'local', engine: 'LOCAL_ONLY' });
-      setGuardianCount(localFallbackCount);
-      updateTrend(localFallbackCount);
+      setGuardianCount(0);
+      setTrend('stable');
+      setCloudInfo({ latency: 'error', engine: reason });
     };
 
     const syncPresence = async () => {
       if (!guardianNetwork) {
-        setLocalMode();
+        setCloudUnavailable('GUARDIAN_NETWORK_DISABLED');
         return;
       }
 
@@ -91,39 +86,36 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
               response = candidate;
               break;
             }
-          } catch (fetchError) {
+          } catch {
             // Continue to next endpoint
           }
         }
 
         if (!response) {
-          throw new Error('Presence API is unreachable on all known endpoints');
+          throw new Error('Presence API unavailable');
         }
 
         const data = (await response.json()) as PresenceResponse;
-        const count = Number(data.count || 0);
-        const safeCount = Number.isFinite(count) && count > 0 ? count : localFallbackCount;
+        const safeCount = Number.isFinite(Number(data.count)) ? Math.max(0, Number(data.count)) : 0;
 
         setDbStatus('LIVE');
         setGuardianCount(safeCount);
         setCloudInfo({
           latency: data.latency || 'n/a',
-          engine: data.engine || 'NETLIFY_POSTGRES',
+          engine: data.engine || 'CLOUD_UNKNOWN',
         });
         if (data.trend) setTrend(data.trend);
         else updateTrend(safeCount);
-      } catch (error) {
-        setLocalMode();
+      } catch {
+        setCloudUnavailable('CLOUD_UNAVAILABLE');
       }
     };
 
     syncPresence();
     const pollInterval = setInterval(syncPresence, POLL_INTERVAL_MS);
 
-    return () => {
-      clearInterval(pollInterval);
-    };
-  }, [guardianNetwork, localFallbackCount]);
+    return () => clearInterval(pollInterval);
+  }, [guardianNetwork]);
 
   return (
     <div className="flex flex-col p-6 pb-40 animate-in fade-in zoom-in-95 duration-700">
@@ -141,7 +133,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
 
           {guardianNetwork && (
             <div className={`absolute -bottom-4 z-20 px-4 py-2 rounded-full border flex flex-col items-center shadow-xl transition-all duration-500 whitespace-nowrap ${
-              dbStatus === 'LIVE' ? 'bg-blue-600 border-blue-400/30' : 'bg-neutral-800 border-white/10 opacity-80'
+              dbStatus === 'LIVE' ? 'bg-blue-600 border-blue-400/30' : 'bg-red-700/80 border-red-400/20 opacity-90'
             }`}>
               {dbStatus === 'CONNECTING' ? (
                 <div className="flex items-center gap-2 py-1 px-2">
@@ -152,11 +144,13 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
                 <div className="flex flex-col items-center">
                   <div className="flex items-center gap-1.5 px-2 py-1">
                     <Users size={12} className="text-white shrink-0" />
-                    <span className="text-[11px] font-black text-white tabular-nums animate-in fade-in slide-in-from-bottom-1">{guardianCount}</span>
+                    <span className="text-[11px] font-black text-white tabular-nums animate-in fade-in slide-in-from-bottom-1">
+                      {dbStatus === 'LIVE' ? guardianCount : 'ERR'}
+                    </span>
                     <div className="flex flex-col items-center ml-0.5">
-                      {trend === 'up' && <ArrowUpRight size={10} className="text-green-300 animate-bounce" />}
-                      {trend === 'down' && <ArrowDownRight size={10} className="text-red-300 animate-bounce" />}
-                      {trend === 'stable' && <Minus size={10} className="text-white/40" />}
+                      {dbStatus === 'LIVE' && trend === 'up' && <ArrowUpRight size={10} className="text-green-300 animate-bounce" />}
+                      {dbStatus === 'LIVE' && trend === 'down' && <ArrowDownRight size={10} className="text-red-300 animate-bounce" />}
+                      {(dbStatus !== 'LIVE' || trend === 'stable') && <Minus size={10} className="text-white/40" />}
                     </div>
                   </div>
                   {cloudInfo && (
@@ -206,7 +200,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         {cloudInfo && (
           <div className="flex justify-between items-center px-4 opacity-30 text-white font-mono text-[7px] uppercase tracking-tighter">
             <span>{t.engine}: {cloudInfo.engine}</span>
-            <span>MODE: {dbStatus === 'LIVE' ? 'CLOUD' : 'LOCAL'}</span>
+            <span>MODE: {dbStatus === 'LIVE' ? 'CLOUD' : 'OFFLINE'}</span>
           </div>
         )}
 

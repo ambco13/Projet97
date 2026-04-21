@@ -17,14 +17,18 @@ const getPool = async () => {
   const connectionString = getDatabaseUrl();
   if (!connectionString) return null;
 
-  poolPromise = (async () => {
-    const pgModuleName = 'pg';
-    const pg = await import(pgModuleName);
-    const Pool = (pg as any).Pool;
-    return new Pool({ connectionString });
-  })();
+  try {
+    poolPromise = (async () => {
+      const pg = await import('pg');
+      const Pool = (pg as any).Pool;
+      return new Pool({ connectionString });
+    })();
 
-  return poolPromise;
+    return poolPromise;
+  } catch {
+    poolPromise = null;
+    return null;
+  }
 };
 
 const registerInMemoryPresence = (deviceId: string, userIP: string) => {
@@ -65,17 +69,14 @@ export const handler: Handler = async (event) => {
     if (!db) {
       const count = registerInMemoryPresence(deviceId, userIP);
       return {
-        statusCode: 200,
+        statusCode: 503,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          count,
-          trend: 'stable',
-          engine: 'NETLIFY_FUNCTION_MEMORY',
-          latency: `${Date.now() - startedAt}ms`,
-          storage: 'memory-fallback',
+          error: 'CLOUD_DATABASE_UNAVAILABLE',
+          detail: 'Presence requires a configured and reachable Postgres database.',
         }),
       };
     }
