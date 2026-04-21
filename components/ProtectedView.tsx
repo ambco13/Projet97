@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Shield, Mic, MapPin, Zap, Users, Globe, Move, ArrowUpRight, ArrowDownRight, Minus, Activity } from 'lucide-react';
 import { Contact } from '../types';
 
@@ -33,6 +33,8 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
 
   const localFallbackCount = useMemo(() => Math.max(1, contacts.length), [contacts.length]);
+  const hadLiveSyncRef = useRef(false);
+  const failedPollsRef = useRef(0);
 
   useEffect(() => {
     const pulseInterval = setInterval(() => setPulse((p) => !p), 2000);
@@ -104,6 +106,8 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         const count = Number(data.count || 0);
         const safeCount = Number.isFinite(count) && count > 0 ? count : localFallbackCount;
 
+        failedPollsRef.current = 0;
+        hadLiveSyncRef.current = true;
         setDbStatus('LIVE');
         setGuardianCount(safeCount);
         setCloudInfo({
@@ -113,6 +117,17 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         if (data.trend) setTrend(data.trend);
         else updateTrend(safeCount);
       } catch (error) {
+        failedPollsRef.current += 1;
+
+        if (hadLiveSyncRef.current && failedPollsRef.current < 3) {
+          setCloudInfo((prev) => ({
+            latency: 'retrying',
+            engine: prev?.engine || 'CLOUD_RETRY',
+          }));
+          setDbStatus('LIVE');
+          return;
+        }
+
         setLocalMode();
       }
     };

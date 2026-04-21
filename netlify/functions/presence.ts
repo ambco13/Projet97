@@ -17,14 +17,32 @@ const getPool = async () => {
   const connectionString = getDatabaseUrl();
   if (!connectionString) return null;
 
-  poolPromise = (async () => {
-    const pgModuleName = 'pg';
-    const pg = await import(pgModuleName);
-    const Pool = (pg as any).Pool;
-    return new Pool({ connectionString });
-  })();
+  try {
+    poolPromise = (async () => {
+      const pgModuleName = 'pg';
+      const pg = await import(pgModuleName);
+      const Pool = (pg as any).Pool;
+      return new Pool({ connectionString });
+    })();
 
-  return poolPromise;
+    return poolPromise;
+  } catch (error) {
+    poolPromise = null;
+    return null;
+  }
+};
+
+const registerInMemoryPresence = (deviceId: string, userIP: string) => {
+  const now = Date.now();
+  inMemoryPresence.set(deviceId, { ip: userIP, lastSeen: now });
+
+  for (const [id, item] of inMemoryPresence.entries()) {
+    if (now - item.lastSeen > PRESENCE_WINDOW_MS) {
+      inMemoryPresence.delete(id);
+    }
+  }
+
+  return inMemoryPresence.size;
 };
 
 const registerInMemoryPresence = (deviceId: string, userIP: string) => {
