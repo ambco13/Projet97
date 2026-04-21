@@ -24,5 +24,8 @@
     "./**/*.ts",
     "./**/*.tsx",
     "./**/*.d.ts"
+  ],
+  "exclude": [
+    "netlify/functions/**/*"
   ]
 }
