@@ -6,6 +6,9 @@ const getDatabaseUrl = () =>
   process.env.DATABASE_URL ||
   '';
 
+const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
+const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
+
 let poolPromise: Promise<any> | null = null;
 
 const getPool = async () => {
@@ -26,6 +29,19 @@ const getPool = async () => {
     poolPromise = null;
     return null;
   }
+};
+
+const registerInMemoryPresence = (deviceId: string, userIP: string) => {
+  const now = Date.now();
+  inMemoryPresence.set(deviceId, { ip: userIP, lastSeen: now });
+
+  for (const [id, item] of inMemoryPresence.entries()) {
+    if (now - item.lastSeen > PRESENCE_WINDOW_MS) {
+      inMemoryPresence.delete(id);
+    }
+  }
+
+  return inMemoryPresence.size;
 };
 
 export const handler: Handler = async (event) => {
@@ -51,6 +67,7 @@ export const handler: Handler = async (event) => {
     const db = await getPool();
 
     if (!db) {
+      const count = registerInMemoryPresence(deviceId, userIP);
       return {
         statusCode: 503,
         headers: {
