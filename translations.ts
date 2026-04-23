@@ -61,7 +61,8 @@ export const translations: Record<string, any> = {
     cloudOffline: "Mode local (Hors-ligne)",
     latency: "Latence",
     engine: "Moteur",
-    nearbyGuardians: "gardiens proches alertés (≤ 1 km)"
+    nearbyGuardians: "gardiens proches alertés (≤ 1 km)",
+    nearbySosDetected: "SOS détecté à proximité (rayon 1 km)"
   },
   en: {
     appTitle: "Project 97",
@@ -117,6 +118,7 @@ export const translations: Record<string, any> = {
     cloudOffline: "Local Mode (Offline)",
     latency: "Latency",
     engine: "Engine",
-    nearbyGuardians: "nearby guardians alerted (≤ 1 km)"
+    nearbyGuardians: "nearby guardians alerted (≤ 1 km)",
+    nearbySosDetected: "Nearby SOS detected (1 km radius)"
   }
 };

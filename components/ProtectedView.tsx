@@ -17,6 +17,8 @@ interface PresenceResponse {
   trend?: 'up' | 'down' | 'stable';
   engine?: string;
   latency?: string;
+  incomingAlerts?: number;
+  latestAlertId?: string | null;
 }
 
 const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
@@ -32,7 +34,9 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
     engine: 'CLOUD_CONNECTING',
   });
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
+  const [incomingAlertActive, setIncomingAlertActive] = useState(false);
   const previousCountRef = useRef(0);
+  const lastIncomingAlertIdRef = useRef<string | null>(null);
   const getCurrentCoordinates = () =>
     new Promise<{ lat: number; lng: number } | null>((resolve) => {
       if (!navigator.geolocation) {
@@ -116,13 +120,29 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
 
         const data = (await response.json()) as PresenceResponse;
         const safeCount = Number.isFinite(Number(data.count)) ? Math.max(0, Number(data.count)) : 0;
+        const hasIncomingAlert = Number(data.incomingAlerts || 0) > 0;
+        const latestAlertId = data.latestAlertId || null;
 
         setDbStatus('LIVE');
         setGuardianCount(safeCount);
+        setIncomingAlertActive(hasIncomingAlert);
         setCloudInfo({
           latency: data.latency || 'n/a',
           engine: data.engine || 'CLOUD_UNKNOWN',
         });
+
+        if (hasIncomingAlert && latestAlertId && latestAlertId !== lastIncomingAlertIdRef.current) {
+          lastIncomingAlertIdRef.current = latestAlertId;
+          if (navigator.vibrate) navigator.vibrate([120, 80, 120, 80, 300]);
+
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Projet 97', {
+              body: 'Alerte SOS à proximité (≤ 1 km).',
+            });
+          } else if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().catch(() => undefined);
+          }
+        }
         if (data.trend) setTrend(data.trend);
         else updateTrend(safeCount);
       } catch {
@@ -216,6 +236,11 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       </div>
 
       <div className="space-y-4">
+        {incomingAlertActive && (
+          <div className="bg-red-600/20 border border-red-500/40 p-4 rounded-2xl text-red-100 text-xs font-bold tracking-wide">
+            ⚠️ {t.nearbySosDetected || 'SOS détecté à proximité (rayon 1 km)'}
+          </div>
+        )}
         {cloudInfo && (
           <div className="flex justify-between items-center px-4 opacity-30 text-white font-mono text-[7px] uppercase tracking-tighter">
             <span>{t.engine}: {cloudInfo.engine}</span>
