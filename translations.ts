@@ -12,7 +12,7 @@ export const translations: Record<string, any> = {
     guardianProtocol: "Protocole Guardian",
     active: "Actif",
     protectionActive: "Protection Active",
-    voiceInstruction: "Dites \"97\" (dans votre langue) ou secouez votre appareil.",
+    voiceInstruction: "Dites \"Alerte 97\" (dans votre langue) ou secouez votre appareil.",
     manualSos: "Lancer SOS Manuellement",
     listening: "ÉCOUTE LIVE",
     microphone: "Microphone",
@@ -65,14 +65,18 @@ export const translations: Record<string, any> = {
     nearbySosDetected: "SOS détecté à proximité (rayon 1 km)",
     sender: "Émetteur",
     viewRequesterLocation: "Voir la position de la personne en danger",
-    approximateAlertHint: "Localisation approximative (GPS indisponible pour certains guardians)."
+    approximateAlertHint: "Localisation approximative (GPS indisponible pour certains guardians).",
+    disableProtection: "Désactiver la protection",
+    enableProtection: "Activer la protection",
+    inactive: "Inactif",
+    sleeping: "EN PAUSE"
   },
   en: {
     appTitle: "Project 97",
     guardianProtocol: "Guardian Protocol",
     active: "Active",
     protectionActive: "Active Protection",
-    voiceInstruction: "Say \"97\" (in your language) or shake your device.",
+    voiceInstruction: "Say \"Alert 97\" (in your language) or shake your device.",
     manualSos: "Trigger SOS Manually",
     listening: "LIVE LISTENING",
     microphone: "Microphone",
@@ -125,6 +129,10 @@ export const translations: Record<string, any> = {
     nearbySosDetected: "Nearby SOS detected (1 km radius)",
     sender: "Sender",
     viewRequesterLocation: "View requester location",
-    approximateAlertHint: "Approximate location (GPS unavailable for some guardians)."
+    approximateAlertHint: "Approximate location (GPS unavailable for some guardians).",
+    disableProtection: "Disable protection",
+    enableProtection: "Enable protection",
+    inactive: "Inactive",
+    sleeping: "PAUSED"
   }
 };

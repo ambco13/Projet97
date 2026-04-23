@@ -16,17 +16,15 @@ const GEO_OPTIONS = {
 };
 
 const SHAKE_THRESHOLD = 15; // Sensibilité du secouement
+const BACKGROUND_SHAKE_THRESHOLD = 30; // Déclenchement uniquement en secouement extrême hors focus
 const TAB_ORDER: Array<'PROTECTED' | 'HISTORY' | 'SETUP'> = ['PROTECTED', 'HISTORY', 'SETUP'];
 const VOICE_TRIGGER_PATTERNS = [
-  /\b97\b/,
-  /\bninety[\s-]?seven\b/,
-  /\bquatre[\s-]?vingt[\s-]?dix[\s-]?sept\b/,
-  /\bnoventa[\s-]?y[\s-]?siete\b/,
-  /\bsiebenundneunzig\b/,
-  /\bnovantasette\b/,
-  /\bתשעים[\s-]?ושבע\b/,
-  /\bسبعة[\s-]?وتسعون\b/,
-  /\bдевяносто[\s-]?семь\b/,
+  /\balert[\s-]?97\b/,
+  /\balerte[\s-]?97\b/,
+  /\balerta[\s-]?97\b/,
+  /\balarma[\s-]?97\b/,
+  /\bтревога[\s-]?97\b/,
+  /\bإنذار[\s-]?97\b/,
 ];
 
 const App: React.FC = () => {
@@ -34,7 +32,12 @@ const App: React.FC = () => {
   const stateRef = useRef<AppState>('SETUP');
   const [config, setConfig] = useState<AppConfig>(() => {
     const saved = localStorage.getItem('p97_config');
-    return saved ? JSON.parse(saved) : { pin: '', contacts: [], guardianNetwork: true, language: 'fr' };
+    if (!saved) return { pin: '', contacts: [], guardianNetwork: true, language: 'fr', protectionEnabled: true };
+    const parsed = JSON.parse(saved);
+    return {
+      ...parsed,
+      protectionEnabled: parsed.protectionEnabled !== false,
+    };
   });
   const [logs, setLogs] = useState<EmergencyLog[]>(() => {
     const saved = localStorage.getItem('p97_logs');
@@ -80,7 +83,7 @@ const App: React.FC = () => {
   }, []);
 
   const triggerEmergency = useCallback((reason: string) => {
-    if (stateRef.current === 'EMERGENCY' || stateRef.current === 'DEACTIVATING') return;
+    if (stateRef.current === 'EMERGENCY' || stateRef.current === 'DEACTIVATING' || !config.protectionEnabled) return;
     
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
 
@@ -98,19 +101,49 @@ const App: React.FC = () => {
       GEO_OPTIONS
     );
     setState('EMERGENCY');
-  }, [addLog]);
+  }, [addLog, config.protectionEnabled]);
+
+  const getOrCreateDeviceId = useCallback(() => {
+    const key = 'p97_device_id';
+    let deviceId = localStorage.getItem(key);
+    if (!deviceId) {
+      const uuid = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      deviceId = `p97_${uuid}`;
+      localStorage.setItem(key, deviceId);
+    }
+    return deviceId;
+  }, []);
+
+  const resolveEmergencyAlert = useCallback(async () => {
+    const payload = { action: 'resolve', deviceId: getOrCreateDeviceId() };
+    const endpoints = ['/.netlify/functions/presence', '/api/presence'];
+    for (const endpoint of endpoints) {
+      try {
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        return;
+      } catch {
+        // try next endpoint
+      }
+    }
+  }, [getOrCreateDeviceId]);
 
   // Détection de secousses
   useEffect(() => {
     const handleMotion = (event: DeviceMotionEvent) => {
-      if (stateRef.current !== 'PROTECTED') return;
+      if (stateRef.current !== 'PROTECTED' || !config.protectionEnabled) return;
       
       const acc = event.accelerationIncludingGravity;
       if (!acc) return;
 
       const totalAcc = Math.sqrt((acc.x || 0)**2 + (acc.y || 0)**2 + (acc.z || 0)**2);
       
-      if (totalAcc > SHAKE_THRESHOLD) {
+      const isVisible = document.visibilityState === 'visible';
+      const activeThreshold = isVisible ? SHAKE_THRESHOLD : BACKGROUND_SHAKE_THRESHOLD;
+      if (totalAcc > activeThreshold) {
         const now = Date.now();
         if (now - lastShakeTime.current > 1000) { // Throttle
           lastShakeTime.current = now;
@@ -119,11 +152,23 @@ const App: React.FC = () => {
       }
     };
 
-    if (state === 'PROTECTED') {
+    if (state === 'PROTECTED' && config.protectionEnabled) {
       window.addEventListener('devicemotion', handleMotion);
     }
     return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [state, triggerEmergency]);
+  }, [state, config.protectionEnabled, triggerEmergency]);
+
+  const stopListening = useCallback(() => {
+    if (restartListenTimeoutRef.current) {
+      clearTimeout(restartListenTimeoutRef.current);
+      restartListenTimeoutRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch(e) {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
 
   const stopListening = useCallback(() => {
     if (restartListenTimeoutRef.current) {
@@ -175,18 +220,18 @@ const App: React.FC = () => {
   }, [triggerEmergency, langMeta.locale]);
 
   useEffect(() => {
-    const shouldListen = state === 'PROTECTED' && activeTab === 'PROTECTED';
+    const shouldListen = state === 'PROTECTED' && activeTab === 'PROTECTED' && config.protectionEnabled;
     if (shouldListen) {
       startListening();
     } else {
       stopListening();
     }
     return () => stopListening();
-  }, [state, activeTab, startListening, stopListening]);
+  }, [state, activeTab, config.protectionEnabled, startListening, stopListening]);
 
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && stateRef.current === 'PROTECTED' && activeTab === 'PROTECTED') {
+      if (document.visibilityState === 'visible' && stateRef.current === 'PROTECTED' && activeTab === 'PROTECTED' && config.protectionEnabled) {
         startListening();
       } else {
         stopListening();
@@ -202,7 +247,7 @@ const App: React.FC = () => {
       window.removeEventListener('blur', stopListening);
       window.removeEventListener('focus', handleVisibility);
     };
-  }, [activeTab, startListening, stopListening]);
+  }, [activeTab, config.protectionEnabled, startListening, stopListening]);
 
 
   const navigateBySwipe = useCallback((direction: 'left' | 'right') => {
@@ -258,7 +303,7 @@ const App: React.FC = () => {
         .catch(console.error);
     }
 
-    setConfig({ pin, contacts, guardianNetwork, language });
+    setConfig(prev => ({ ...prev, pin, contacts, guardianNetwork, language, protectionEnabled: true }));
     setState('PROTECTED');
     setActiveTab('PROTECTED');
   };
@@ -295,7 +340,9 @@ const App: React.FC = () => {
             isListening={isListening}
             guardianNetwork={config.guardianNetwork}
             language={config.language}
+            protectionEnabled={config.protectionEnabled}
             onTrigger={() => triggerEmergency('MANUAL SOS')} 
+            onToggleProtection={() => setConfig(prev => ({ ...prev, protectionEnabled: !prev.protectionEnabled }))}
             onShowHistory={() => setActiveTab('HISTORY')}
             translations={t}
           />
@@ -307,7 +354,11 @@ const App: React.FC = () => {
           <PinPad 
             correctPin={config.pin} 
             language={config.language}
-            onSuccess={() => { setState('PROTECTED'); setActiveTab('PROTECTED'); }} 
+            onSuccess={() => {
+              resolveEmergencyAlert();
+              setState('PROTECTED');
+              setActiveTab('PROTECTED');
+            }} 
             onCancel={() => setState('EMERGENCY')}
             translations={t}
           />

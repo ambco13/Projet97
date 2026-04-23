@@ -79,7 +79,7 @@ export const handler: Handler = async (event) => {
     const deviceId = typeof body.deviceId === 'string' && body.deviceId.trim().length > 0
       ? body.deviceId.trim()
       : 'anonymous_device';
-    const action = body.action === 'alert' ? 'alert' : 'presence';
+    const action = body.action === 'alert' ? 'alert' : body.action === 'resolve' ? 'resolve' : 'presence';
     const lat = Number.isFinite(Number(body.lat)) ? Number(body.lat) : null;
     const lng = Number.isFinite(Number(body.lng)) ? Number(body.lng) : null;
     const radiusKm = Number.isFinite(Number(body.radiusKm)) ? Math.max(0.1, Number(body.radiusKm)) : 1;
@@ -123,9 +123,11 @@ export const handler: Handler = async (event) => {
         lat DOUBLE PRECISION NOT NULL,
         lng DOUBLE PRECISION NOT NULL,
         radius_km DOUBLE PRECISION NOT NULL DEFAULT 1,
+        resolved_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await db.query(`ALTER TABLE guardian_alerts ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ`);
 
     await db.query(
       `
@@ -197,6 +199,17 @@ export const handler: Handler = async (event) => {
         [deviceId, lat, lng, radiusKm],
       );
     }
+    if (action === 'resolve') {
+      await db.query(
+        `
+          UPDATE guardian_alerts
+          SET resolved_at = NOW()
+          WHERE sender_device_id = $1
+            AND resolved_at IS NULL
+        `,
+        [deviceId],
+      );
+    }
 
     const incomingAlertsResult = lat !== null && lng !== null
       ? await db.query(
@@ -205,6 +218,7 @@ export const handler: Handler = async (event) => {
             FROM guardian_alerts
             WHERE sender_device_id <> $1
               AND created_at > NOW() - INTERVAL '90 seconds'
+              AND resolved_at IS NULL
               AND (
                 6371 * acos(
                   cos(radians($2)) * cos(radians(lat))
@@ -223,6 +237,7 @@ export const handler: Handler = async (event) => {
             FROM guardian_alerts
             WHERE sender_device_id <> $1
               AND created_at > NOW() - INTERVAL '90 seconds'
+              AND resolved_at IS NULL
             ORDER BY created_at DESC
             LIMIT 1
           `,

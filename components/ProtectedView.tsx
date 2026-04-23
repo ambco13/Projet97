@@ -7,7 +7,9 @@ interface Props {
   isListening: boolean;
   guardianNetwork: boolean;
   language: string;
+  protectionEnabled: boolean;
   onTrigger: () => void;
+  onToggleProtection: () => void;
   onShowHistory: () => void;
   translations: any;
 }
@@ -29,7 +31,7 @@ const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
 const POLL_INTERVAL_MS = 10000;
 const DEVICE_ID_KEY = 'p97_device_id';
 
-const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
+const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, protectionEnabled, onTrigger, onToggleProtection, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
   const [guardianCount, setGuardianCount] = useState<number>(0);
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
@@ -181,7 +183,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
             <div className="absolute inset-2 border border-green-500/5 rounded-full animate-[spin_10s_linear_infinite]"></div>
             <Shield size={64} className="text-green-500 mb-2 drop-shadow-[0_0_15px_rgba(34,197,94,0.4)]" fill="currentColor" fillOpacity={0.1} />
             <div className="h-1 w-10 bg-green-500/20 rounded-full mb-1"></div>
-            <span className="text-[10px] font-black tracking-[0.4em] text-green-500 uppercase ml-1">{t.active}</span>
+            <span className="text-[10px] font-black tracking-[0.4em] text-green-500 uppercase ml-1">{protectionEnabled ? t.active : (t.inactive || 'Inactif')}</span>
           </div>
 
           {guardianNetwork && (
@@ -239,7 +241,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
             )}
           </div>
           <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1">{t.microphone}</p>
-          <p className="text-[11px] font-black text-white truncate w-full uppercase">{t.listening}</p>
+          <p className="text-[11px] font-black text-white truncate w-full uppercase">{protectionEnabled ? t.listening : (t.sleeping || 'PAUSE')}</p>
         </div>
 
         <div className="bg-neutral-900/40 p-5 rounded-[2rem] border border-white/5 backdrop-blur-sm flex flex-col items-center text-center">
@@ -292,11 +294,19 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
           </div>
         </div>
 
+        {protectionEnabled && (
+          <button
+            onClick={onTrigger}
+            className="w-full bg-white text-black font-black py-5 rounded-[1.5rem] shadow-xl hover:bg-red-600 hover:text-white transition-all transform active:scale-[0.97] uppercase tracking-widest text-xs"
+          >
+            {t.manualSos}
+          </button>
+        )}
         <button
-          onClick={onTrigger}
-          className="w-full bg-white text-black font-black py-5 rounded-[1.5rem] shadow-xl hover:bg-red-600 hover:text-white transition-all transform active:scale-[0.97] uppercase tracking-widest text-xs"
+          onClick={onToggleProtection}
+          className="w-full bg-neutral-800 text-neutral-100 font-black py-4 rounded-[1.2rem] border border-white/10 uppercase tracking-wider text-[11px]"
         >
-          {t.manualSos}
+          {protectionEnabled ? (t.disableProtection || 'Désactiver la protection') : (t.enableProtection || 'Activer la protection')}
         </button>
       </div>
     </div>
