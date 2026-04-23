@@ -12,7 +12,7 @@ export const translations: Record<string, any> = {
     guardianProtocol: "Protocole Guardian",
     active: "Actif",
     protectionActive: "Protection Active",
-    voiceInstruction: "Dites \"97\" ou secouez votre appareil.",
+    voiceInstruction: "Dites \"97\" (dans votre langue) ou secouez votre appareil.",
     manualSos: "Lancer SOS Manuellement",
     listening: "ÉCOUTE LIVE",
     microphone: "Microphone",
@@ -60,14 +60,19 @@ export const translations: Record<string, any> = {
     cloudSyncing: "Synchronisation...",
     cloudOffline: "Mode local (Hors-ligne)",
     latency: "Latence",
-    engine: "Moteur"
+    engine: "Moteur",
+    nearbyGuardians: "gardiens proches alertés (≤ 1 km)",
+    nearbySosDetected: "SOS détecté à proximité (rayon 1 km)",
+    sender: "Émetteur",
+    viewRequesterLocation: "Voir la position de la personne en danger",
+    approximateAlertHint: "Localisation approximative (GPS indisponible pour certains guardians)."
   },
   en: {
     appTitle: "Project 97",
     guardianProtocol: "Guardian Protocol",
     active: "Active",
     protectionActive: "Active Protection",
-    voiceInstruction: "Say \"97\" or shake your device.",
+    voiceInstruction: "Say \"97\" (in your language) or shake your device.",
     manualSos: "Trigger SOS Manually",
     listening: "LIVE LISTENING",
     microphone: "Microphone",
@@ -115,6 +120,11 @@ export const translations: Record<string, any> = {
     cloudSyncing: "Syncing...",
     cloudOffline: "Local Mode (Offline)",
     latency: "Latency",
-    engine: "Engine"
+    engine: "Engine",
+    nearbyGuardians: "nearby guardians alerted (≤ 1 km)",
+    nearbySosDetected: "Nearby SOS detected (1 km radius)",
+    sender: "Sender",
+    viewRequesterLocation: "View requester location",
+    approximateAlertHint: "Approximate location (GPS unavailable for some guardians)."
   }
 };
