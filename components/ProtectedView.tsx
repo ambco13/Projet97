@@ -17,10 +17,16 @@ interface PresenceResponse {
   trend?: 'up' | 'down' | 'stable';
   engine?: string;
   latency?: string;
+  incomingAlerts?: number;
+  latestAlertId?: string | null;
+  latestAlertLat?: number | null;
+  latestAlertLng?: number | null;
+  latestAlertSender?: string | null;
 }
 
 const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
 const POLL_INTERVAL_MS = 10000;
+const DEVICE_ID_KEY = 'p97_device_id';
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
@@ -31,7 +37,24 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
     engine: 'CLOUD_CONNECTING',
   });
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
+  const [incomingAlertActive, setIncomingAlertActive] = useState(false);
+  const [incomingAlertCoords, setIncomingAlertCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [incomingAlertSender, setIncomingAlertSender] = useState<string | null>(null);
   const previousCountRef = useRef(0);
+  const lastIncomingAlertIdRef = useRef<string | null>(null);
+  const getCurrentCoordinates = () =>
+    new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 4000, maximumAge: 15000 },
+      );
+    });
 
   useEffect(() => {
     const pulseInterval = setInterval(() => setPulse((p) => !p), 2000);
@@ -62,13 +85,14 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
 
       setDbStatus('CONNECTING');
 
-      const deviceIdKey = 'p97_device_id';
-      let deviceId = localStorage.getItem(deviceIdKey);
+      let deviceId = localStorage.getItem(DEVICE_ID_KEY);
       if (!deviceId) {
         const uuid = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
         deviceId = `p97_${uuid}`;
-        localStorage.setItem(deviceIdKey, deviceId);
+        localStorage.setItem(DEVICE_ID_KEY, deviceId);
       }
+
+      const coords = await getCurrentCoordinates();
 
       try {
         let response: Response | null = null;
@@ -79,7 +103,11 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ deviceId }),
+              body: JSON.stringify({
+                deviceId,
+                lat: coords?.lat,
+                lng: coords?.lng,
+              }),
             });
 
             if (candidate.ok) {
@@ -97,13 +125,35 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
 
         const data = (await response.json()) as PresenceResponse;
         const safeCount = Number.isFinite(Number(data.count)) ? Math.max(0, Number(data.count)) : 0;
+        const hasIncomingAlert = Number(data.incomingAlerts || 0) > 0;
+        const latestAlertId = data.latestAlertId || null;
+        const latestAlertLat = Number.isFinite(Number(data.latestAlertLat)) ? Number(data.latestAlertLat) : null;
+        const latestAlertLng = Number.isFinite(Number(data.latestAlertLng)) ? Number(data.latestAlertLng) : null;
 
         setDbStatus('LIVE');
         setGuardianCount(safeCount);
+        setIncomingAlertActive(hasIncomingAlert);
+        setIncomingAlertCoords(hasIncomingAlert && latestAlertLat !== null && latestAlertLng !== null
+          ? { lat: latestAlertLat, lng: latestAlertLng }
+          : null);
+        setIncomingAlertSender(hasIncomingAlert ? (data.latestAlertSender || null) : null);
         setCloudInfo({
           latency: data.latency || 'n/a',
           engine: data.engine || 'CLOUD_UNKNOWN',
         });
+
+        if (hasIncomingAlert && latestAlertId && latestAlertId !== lastIncomingAlertIdRef.current) {
+          lastIncomingAlertIdRef.current = latestAlertId;
+          if (navigator.vibrate) navigator.vibrate([120, 80, 120, 80, 300]);
+
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Projet 97', {
+              body: 'Alerte SOS à proximité (≤ 1 km).',
+            });
+          } else if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().catch(() => undefined);
+          }
+        }
         if (data.trend) setTrend(data.trend);
         else updateTrend(safeCount);
       } catch {
@@ -197,6 +247,24 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       </div>
 
       <div className="space-y-4">
+        {incomingAlertActive && (
+          <div className="bg-red-600/20 border border-red-500/40 p-4 rounded-2xl text-red-100 text-xs font-bold tracking-wide space-y-2">
+            <p>⚠️ {t.nearbySosDetected || 'SOS détecté à proximité (rayon 1 km)'}</p>
+            {incomingAlertSender && (
+              <p className="text-[10px] text-red-200/90">{t.sender || 'Émetteur'}: {incomingAlertSender}</p>
+            )}
+            {incomingAlertCoords && (
+              <a
+                className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-red-500/25 border border-red-400/50 hover:bg-red-500/35 transition-colors text-[11px]"
+                href={`https://www.google.com/maps?q=${incomingAlertCoords.lat},${incomingAlertCoords.lng}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {t.viewRequesterLocation || 'Voir la position de la personne en danger'}
+              </a>
+            )}
+          </div>
+        )}
         {cloudInfo && (
           <div className="flex justify-between items-center px-4 opacity-30 text-white font-mono text-[7px] uppercase tracking-tighter">
             <span>{t.engine}: {cloudInfo.engine}</span>

@@ -16,6 +16,18 @@ const GEO_OPTIONS = {
 };
 
 const SHAKE_THRESHOLD = 15; // Sensibilité du secouement
+const TAB_ORDER: Array<'PROTECTED' | 'HISTORY' | 'SETUP'> = ['PROTECTED', 'HISTORY', 'SETUP'];
+const VOICE_TRIGGER_PATTERNS = [
+  /\b97\b/,
+  /\bninety[\s-]?seven\b/,
+  /\bquatre[\s-]?vingt[\s-]?dix[\s-]?sept\b/,
+  /\bnoventa[\s-]?y[\s-]?siete\b/,
+  /\bsiebenundneunzig\b/,
+  /\bnovantasette\b/,
+  /\bתשעים[\s-]?ושבע\b/,
+  /\bسبعة[\s-]?وتسعون\b/,
+  /\bдевяносто[\s-]?семь\b/,
+];
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>('SETUP');
@@ -31,7 +43,10 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'PROTECTED' | 'HISTORY' | 'SETUP'>('PROTECTED');
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const restartListenTimeoutRef = useRef<number | null>(null);
   const lastShakeTime = useRef<number>(0);
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
 
   const currentLang = config.language || 'fr';
   const t = translations[currentLang] || translations.fr;
@@ -110,7 +125,21 @@ const App: React.FC = () => {
     return () => window.removeEventListener('devicemotion', handleMotion);
   }, [state, triggerEmergency]);
 
+  const stopListening = useCallback(() => {
+    if (restartListenTimeoutRef.current) {
+      clearTimeout(restartListenTimeoutRef.current);
+      restartListenTimeoutRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch(e) {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
+
   const startListening = useCallback(() => {
+    if (document.visibilityState !== 'visible') return;
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition && !recognitionRef.current) {
       const recognition = new SpeechRecognition();
@@ -121,32 +150,101 @@ const App: React.FC = () => {
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event: any) => {
         const result = event.results[event.results.length - 1][0].transcript.toLowerCase();
-        if (result.includes('97')) {
+        const shouldTrigger = VOICE_TRIGGER_PATTERNS.some((pattern) => pattern.test(result));
+        if (shouldTrigger) {
           triggerEmergency('VOICE COMMAND');
         }
       };
       recognition.onend = () => {
         setIsListening(false);
-        if (stateRef.current === 'PROTECTED') {
-          setTimeout(() => { if (stateRef.current === 'PROTECTED') recognition.start(); }, 500);
+        recognitionRef.current = null;
+        if (stateRef.current === 'PROTECTED' && document.visibilityState === 'visible') {
+          restartListenTimeoutRef.current = window.setTimeout(() => {
+            if (stateRef.current === 'PROTECTED' && document.visibilityState === 'visible') {
+              startListening();
+            }
+          }, 1800);
         }
       };
-      recognition.onerror = () => setIsListening(false);
+      recognition.onerror = () => {
+        setIsListening(false);
+        recognitionRef.current = null;
+      };
       try { recognition.start(); recognitionRef.current = recognition; } catch (e) { setIsListening(false); }
     }
   }, [triggerEmergency, langMeta.locale]);
 
   useEffect(() => {
-    if (state === 'PROTECTED') {
+    const shouldListen = state === 'PROTECTED' && activeTab === 'PROTECTED';
+    if (shouldListen) {
       startListening();
     } else {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch(e) {}
-        recognitionRef.current = null;
-      }
-      setIsListening(false);
+      stopListening();
     }
-  }, [state, startListening]);
+    return () => stopListening();
+  }, [state, activeTab, startListening, stopListening]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && stateRef.current === 'PROTECTED' && activeTab === 'PROTECTED') {
+        startListening();
+      } else {
+        stopListening();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('blur', stopListening);
+    window.addEventListener('focus', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('blur', stopListening);
+      window.removeEventListener('focus', handleVisibility);
+    };
+  }, [activeTab, startListening, stopListening]);
+
+
+  const navigateBySwipe = useCallback((direction: 'left' | 'right') => {
+    if (!config.pin || state === 'EMERGENCY' || state === 'DEACTIVATING') return;
+
+    const currentIndex = TAB_ORDER.indexOf(activeTab);
+    if (currentIndex === -1) return;
+
+    const nextIndex = direction === 'left'
+      ? Math.min(currentIndex + 1, TAB_ORDER.length - 1)
+      : Math.max(currentIndex - 1, 0);
+
+    if (nextIndex === currentIndex) return;
+
+    const nextTab = TAB_ORDER[nextIndex];
+    setActiveTab(nextTab);
+    if (nextTab === 'PROTECTED') {
+      setState('PROTECTED');
+    }
+  }, [activeTab, config.pin, state]);
+
+  const handleTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    swipeStartX.current = touch.clientX;
+    swipeStartY.current = touch.clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    if (swipeStartX.current === null || swipeStartY.current === null) return;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - swipeStartX.current;
+    const deltaY = touch.clientY - swipeStartY.current;
+    const minSwipeDistance = 60;
+
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+
+    if (Math.abs(deltaX) < minSwipeDistance || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    navigateBySwipe(deltaX < 0 ? 'left' : 'right');
+  }, [navigateBySwipe]);
 
   const handleFinishSetup = (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => {
     // Demande de permission pour les capteurs de mouvement (iOS requis)
@@ -176,7 +274,11 @@ const App: React.FC = () => {
          <div className="absolute inset-0 bg-red-950/20 emergency-pulse" />
       </div>
 
-      <div className="flex-1 relative z-10 overflow-y-auto scroll-smooth">
+      <div
+        className="flex-1 relative z-10 overflow-y-auto scroll-smooth"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {(!config.pin || activeTab === 'SETUP') && state !== 'EMERGENCY' && state !== 'DEACTIVATING' && (
           <SetupView 
             onComplete={handleFinishSetup} 
