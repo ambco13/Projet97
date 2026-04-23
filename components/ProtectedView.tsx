@@ -78,6 +78,10 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       setDbStatus('OFFLINE');
       setGuardianCount(0);
       setTrend('stable');
+      setIncomingAlertActive(false);
+      setIncomingAlertCoords(null);
+      setIncomingAlertSender(null);
+      setIncomingAlertPrecision(null);
       setCloudInfo({ latency: 'error', engine: reason });
     };
 

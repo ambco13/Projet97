@@ -170,18 +170,6 @@ const App: React.FC = () => {
     setIsListening(false);
   }, []);
 
-  const stopListening = useCallback(() => {
-    if (restartListenTimeoutRef.current) {
-      clearTimeout(restartListenTimeoutRef.current);
-      restartListenTimeoutRef.current = null;
-    }
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch(e) {}
-      recognitionRef.current = null;
-    }
-    setIsListening(false);
-  }, []);
-
   const startListening = useCallback(() => {
     if (document.visibilityState !== 'visible') return;
 
@@ -308,6 +296,12 @@ const App: React.FC = () => {
     setActiveTab('PROTECTED');
   };
 
+  const handleEmergencyResolved = useCallback(async () => {
+    await resolveEmergencyAlert();
+    setState('PROTECTED');
+    setActiveTab('PROTECTED');
+  }, [resolveEmergencyAlert]);
+
   const showNav = config.pin && state !== 'EMERGENCY' && state !== 'DEACTIVATING';
 
   return (
@@ -354,11 +348,7 @@ const App: React.FC = () => {
           <PinPad 
             correctPin={config.pin} 
             language={config.language}
-            onSuccess={() => {
-              resolveEmergencyAlert();
-              setState('PROTECTED');
-              setActiveTab('PROTECTED');
-            }} 
+            onSuccess={handleEmergencyResolved} 
             onCancel={() => setState('EMERGENCY')}
             translations={t}
           />
