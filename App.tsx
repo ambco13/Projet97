@@ -16,6 +16,7 @@ const GEO_OPTIONS = {
 };
 
 const SHAKE_THRESHOLD = 15; // Sensibilité du secouement
+const TAB_ORDER: Array<'PROTECTED' | 'HISTORY' | 'SETUP'> = ['PROTECTED', 'HISTORY', 'SETUP'];
 const VOICE_TRIGGER_PATTERNS = [
   /\b97\b/,
   /\bninety[\s-]?seven\b/,
@@ -204,65 +205,19 @@ const App: React.FC = () => {
   }, [activeTab, startListening, stopListening]);
 
 
-  const tabOrder: Array<'PROTECTED' | 'HISTORY' | 'SETUP'> = ['PROTECTED', 'HISTORY', 'SETUP'];
-
   const navigateBySwipe = useCallback((direction: 'left' | 'right') => {
     if (!config.pin || state === 'EMERGENCY' || state === 'DEACTIVATING') return;
 
-    const currentIndex = tabOrder.indexOf(activeTab);
+    const currentIndex = TAB_ORDER.indexOf(activeTab);
     if (currentIndex === -1) return;
 
     const nextIndex = direction === 'left'
-      ? Math.min(currentIndex + 1, tabOrder.length - 1)
+      ? Math.min(currentIndex + 1, TAB_ORDER.length - 1)
       : Math.max(currentIndex - 1, 0);
 
     if (nextIndex === currentIndex) return;
 
-    const nextTab = tabOrder[nextIndex];
-    setActiveTab(nextTab);
-    if (nextTab === 'PROTECTED') {
-      setState('PROTECTED');
-    }
-  }, [activeTab, config.pin, state]);
-
-  const handleTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
-    const touch = event.touches[0];
-    swipeStartX.current = touch.clientX;
-    swipeStartY.current = touch.clientY;
-  }, []);
-
-  const handleTouchEnd = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
-    if (swipeStartX.current === null || swipeStartY.current === null) return;
-
-    const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - swipeStartX.current;
-    const deltaY = touch.clientY - swipeStartY.current;
-    const minSwipeDistance = 60;
-
-    swipeStartX.current = null;
-    swipeStartY.current = null;
-
-    if (Math.abs(deltaX) < minSwipeDistance || Math.abs(deltaX) < Math.abs(deltaY)) return;
-
-    navigateBySwipe(deltaX < 0 ? 'left' : 'right');
-  }, [navigateBySwipe]);
-
-
-  const tabOrder: Array<'PROTECTED' | 'HISTORY' | 'SETUP'> = ['PROTECTED', 'HISTORY', 'SETUP'];
-
-  const navigateBySwipe = useCallback((direction: 'left' | 'right') => {
-    if (!config.pin || state === 'EMERGENCY' || state === 'DEACTIVATING') return;
-
-    const currentIndex = tabOrder.indexOf(activeTab);
-    if (currentIndex === -1) return;
-
-    const nextIndex = direction === 'left'
-      ? Math.min(currentIndex + 1, tabOrder.length - 1)
-      : Math.max(currentIndex - 1, 0);
-
-    if (nextIndex === currentIndex) return;
-
-    const nextTab = tabOrder[nextIndex];
+    const nextTab = TAB_ORDER[nextIndex];
     setActiveTab(nextTab);
     if (nextTab === 'PROTECTED') {
       setState('PROTECTED');
