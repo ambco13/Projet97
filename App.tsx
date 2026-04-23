@@ -15,8 +15,8 @@ const GEO_OPTIONS = {
   maximumAge: 0
 };
 
-const SHAKE_THRESHOLD = 15; // Sensibilité du secouement
-const BACKGROUND_SHAKE_THRESHOLD = 30; // Déclenchement uniquement en secouement extrême hors focus
+const SHAKE_THRESHOLD = 28; // Secouement volontaire (très intense)
+const BACKGROUND_SHAKE_THRESHOLD = 40; // Hors focus: secouement hyper intense uniquement
 const TAB_ORDER: Array<'PROTECTED' | 'HISTORY' | 'SETUP'> = ['PROTECTED', 'HISTORY', 'SETUP'];
 const VOICE_TRIGGER_PATTERNS = [
   /\balert[\s-]?97\b/,
@@ -48,6 +48,7 @@ const App: React.FC = () => {
   const recognitionRef = useRef<any>(null);
   const restartListenTimeoutRef = useRef<number | null>(null);
   const lastShakeTime = useRef<number>(0);
+  const strongShakeCountRef = useRef<number>(0);
   const swipeStartX = useRef<number | null>(null);
   const swipeStartY = useRef<number | null>(null);
 
@@ -145,8 +146,12 @@ const App: React.FC = () => {
       const activeThreshold = isVisible ? SHAKE_THRESHOLD : BACKGROUND_SHAKE_THRESHOLD;
       if (totalAcc > activeThreshold) {
         const now = Date.now();
-        if (now - lastShakeTime.current > 1000) { // Throttle
-          lastShakeTime.current = now;
+        const withinBurst = now - lastShakeTime.current < 1200;
+        strongShakeCountRef.current = withinBurst ? strongShakeCountRef.current + 1 : 1;
+        lastShakeTime.current = now;
+
+        if (strongShakeCountRef.current >= 2) {
+          strongShakeCountRef.current = 0;
           triggerEmergency('SHAKE DETECTED');
         }
       }
