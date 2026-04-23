@@ -64,7 +64,8 @@ export const translations: Record<string, any> = {
     nearbyGuardians: "gardiens proches alertés (≤ 1 km)",
     nearbySosDetected: "SOS détecté à proximité (rayon 1 km)",
     sender: "Émetteur",
-    viewRequesterLocation: "Voir la position de la personne en danger"
+    viewRequesterLocation: "Voir la position de la personne en danger",
+    approximateAlertHint: "Localisation approximative (GPS indisponible pour certains guardians)."
   },
   en: {
     appTitle: "Project 97",
@@ -123,6 +124,7 @@ export const translations: Record<string, any> = {
     nearbyGuardians: "nearby guardians alerted (≤ 1 km)",
     nearbySosDetected: "Nearby SOS detected (1 km radius)",
     sender: "Sender",
-    viewRequesterLocation: "View requester location"
+    viewRequesterLocation: "View requester location",
+    approximateAlertHint: "Approximate location (GPS unavailable for some guardians)."
   }
 };

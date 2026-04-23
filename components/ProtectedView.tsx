@@ -22,6 +22,7 @@ interface PresenceResponse {
   latestAlertLat?: number | null;
   latestAlertLng?: number | null;
   latestAlertSender?: string | null;
+  latestAlertPrecision?: 'exact' | 'approximate' | null;
 }
 
 const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
@@ -40,6 +41,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   const [incomingAlertActive, setIncomingAlertActive] = useState(false);
   const [incomingAlertCoords, setIncomingAlertCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [incomingAlertSender, setIncomingAlertSender] = useState<string | null>(null);
+  const [incomingAlertPrecision, setIncomingAlertPrecision] = useState<'exact' | 'approximate' | null>(null);
   const previousCountRef = useRef(0);
   const lastIncomingAlertIdRef = useRef<string | null>(null);
   const getCurrentCoordinates = () =>
@@ -137,6 +139,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
           ? { lat: latestAlertLat, lng: latestAlertLng }
           : null);
         setIncomingAlertSender(hasIncomingAlert ? (data.latestAlertSender || null) : null);
+        setIncomingAlertPrecision(hasIncomingAlert ? (data.latestAlertPrecision || 'approximate') : null);
         setCloudInfo({
           latency: data.latency || 'n/a',
           engine: data.engine || 'CLOUD_UNKNOWN',
@@ -262,6 +265,11 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
               >
                 {t.viewRequesterLocation || 'Voir la position de la personne en danger'}
               </a>
+            )}
+            {incomingAlertPrecision === 'approximate' && (
+              <p className="text-[10px] text-red-200/80">
+                {t.approximateAlertHint || 'Localisation approximative (GPS indisponible pour certains guardians).'}
+              </p>
             )}
           </div>
         )}

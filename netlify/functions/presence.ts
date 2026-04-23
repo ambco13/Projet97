@@ -198,26 +198,39 @@ export const handler: Handler = async (event) => {
       );
     }
 
-    const incomingAlertsResult = await db.query(
-      `
-        SELECT id, created_at, lat, lng, sender_device_id
-        FROM guardian_alerts
-        WHERE sender_device_id <> $1
-          AND created_at > NOW() - INTERVAL '90 seconds'
-          AND (
-            6371 * acos(
-              cos(radians($2)) * cos(radians(lat))
-              * cos(radians(lng) - radians($3))
-              + sin(radians($2)) * sin(radians(lat))
-            )
-          ) <= radius_km
-        ORDER BY created_at DESC
-        LIMIT 1
-      `,
-      [deviceId, lat ?? 0, lng ?? 0],
-    );
+    const incomingAlertsResult = lat !== null && lng !== null
+      ? await db.query(
+          `
+            SELECT id, created_at, lat, lng, sender_device_id
+            FROM guardian_alerts
+            WHERE sender_device_id <> $1
+              AND created_at > NOW() - INTERVAL '90 seconds'
+              AND (
+                6371 * acos(
+                  cos(radians($2)) * cos(radians(lat))
+                  * cos(radians(lng) - radians($3))
+                  + sin(radians($2)) * sin(radians(lat))
+                )
+              ) <= radius_km
+            ORDER BY created_at DESC
+            LIMIT 1
+          `,
+          [deviceId, lat, lng],
+        )
+      : await db.query(
+          `
+            SELECT id, created_at, lat, lng, sender_device_id
+            FROM guardian_alerts
+            WHERE sender_device_id <> $1
+              AND created_at > NOW() - INTERVAL '90 seconds'
+            ORDER BY created_at DESC
+            LIMIT 1
+          `,
+          [deviceId],
+        );
     const latestIncomingAlert = incomingAlertsResult.rows?.[0];
-    const hasIncomingAlert = lat !== null && lng !== null && Boolean(latestIncomingAlert);
+    const hasIncomingAlert = Boolean(latestIncomingAlert);
+    const alertPrecision = lat !== null && lng !== null ? 'exact' : 'approximate';
 
     return {
       statusCode: 200,
@@ -237,6 +250,7 @@ export const handler: Handler = async (event) => {
         latestAlertLat: hasIncomingAlert ? Number(latestIncomingAlert.lat) : null,
         latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert.lng) : null,
         latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert.sender_device_id)) : null,
+        latestAlertPrecision: hasIncomingAlert ? alertPrecision : null,
         session_id: toSessionId(deviceId),
         ip_mask: userIP.replace(/\.\d+$/, '.***'),
       }),
