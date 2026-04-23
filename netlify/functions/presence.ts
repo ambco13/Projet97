@@ -69,10 +69,20 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const body = JSON.parse(event.body || '{}') as { deviceId?: unknown };
+    const body = JSON.parse(event.body || '{}') as {
+      action?: unknown;
+      deviceId?: unknown;
+      lat?: unknown;
+      lng?: unknown;
+      radiusKm?: unknown;
+    };
     const deviceId = typeof body.deviceId === 'string' && body.deviceId.trim().length > 0
       ? body.deviceId.trim()
       : 'anonymous_device';
+    const action = body.action === 'alert' ? 'alert' : body.action === 'resolve' ? 'resolve' : 'presence';
+    const lat = Number.isFinite(Number(body.lat)) ? Number(body.lat) : null;
+    const lng = Number.isFinite(Number(body.lng)) ? Number(body.lng) : null;
+    const radiusKm = Number.isFinite(Number(body.radiusKm)) ? Math.max(0.1, Number(body.radiusKm)) : 1;
     const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
 
     const startedAt = Date.now();
@@ -97,20 +107,40 @@ export const handler: Handler = async (event) => {
       CREATE TABLE IF NOT EXISTS presence (
         device_id TEXT PRIMARY KEY,
         ip TEXT,
+        lat DOUBLE PRECISION,
+        lng DOUBLE PRECISION,
+        last_emergency_at TIMESTAMPTZ,
         last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`);
+    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`);
+    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS last_emergency_at TIMESTAMPTZ`);
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS guardian_alerts (
+        id BIGSERIAL PRIMARY KEY,
+        sender_device_id TEXT NOT NULL,
+        lat DOUBLE PRECISION NOT NULL,
+        lng DOUBLE PRECISION NOT NULL,
+        radius_km DOUBLE PRECISION NOT NULL DEFAULT 1,
+        resolved_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await db.query(`ALTER TABLE guardian_alerts ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ`);
 
     await db.query(
       `
-        INSERT INTO presence (device_id, ip, last_seen)
-        VALUES ($1, $2, NOW())
+        INSERT INTO presence (device_id, ip, lat, lng, last_seen)
+        VALUES ($1, $2, $3, $4, NOW())
         ON CONFLICT (device_id)
         DO UPDATE SET
           ip = EXCLUDED.ip,
+          lat = COALESCE(EXCLUDED.lat, presence.lat),
+          lng = COALESCE(EXCLUDED.lng, presence.lng),
           last_seen = NOW()
       `,
-      [deviceId, userIP],
+      [deviceId, userIP, lat, lng],
     );
 
     await db.query(
@@ -130,6 +160,93 @@ export const handler: Handler = async (event) => {
 
     const finalCount = Number(countResult.rows?.[0]?.count ?? 0);
 
+    let nearbyCount = 0;
+    if (action === 'alert' && lat !== null && lng !== null) {
+      await db.query(
+        `
+          UPDATE presence
+          SET last_emergency_at = NOW()
+          WHERE device_id = $1
+        `,
+        [deviceId],
+      );
+
+      const nearbyResult = await db.query(
+        `
+          SELECT COUNT(*)::int AS count
+          FROM presence
+          WHERE device_id <> $1
+            AND last_seen > NOW() - INTERVAL '${ACTIVE_WINDOW_SQL}'
+            AND lat IS NOT NULL
+            AND lng IS NOT NULL
+            AND (
+              6371 * acos(
+                cos(radians($2)) * cos(radians(lat))
+                * cos(radians(lng) - radians($3))
+                + sin(radians($2)) * sin(radians(lat))
+              )
+            ) <= $4
+        `,
+        [deviceId, lat, lng, radiusKm],
+      );
+      nearbyCount = Number(nearbyResult.rows?.[0]?.count ?? 0);
+
+      await db.query(
+        `
+          INSERT INTO guardian_alerts (sender_device_id, lat, lng, radius_km, created_at)
+          VALUES ($1, $2, $3, $4, NOW())
+        `,
+        [deviceId, lat, lng, radiusKm],
+      );
+    }
+    if (action === 'resolve') {
+      await db.query(
+        `
+          UPDATE guardian_alerts
+          SET resolved_at = NOW()
+          WHERE sender_device_id = $1
+            AND resolved_at IS NULL
+        `,
+        [deviceId],
+      );
+    }
+
+    const incomingAlertsResult = lat !== null && lng !== null
+      ? await db.query(
+          `
+            SELECT id, created_at, lat, lng, sender_device_id
+            FROM guardian_alerts
+            WHERE sender_device_id <> $1
+              AND created_at > NOW() - INTERVAL '90 seconds'
+              AND resolved_at IS NULL
+              AND (
+                6371 * acos(
+                  cos(radians($2)) * cos(radians(lat))
+                  * cos(radians(lng) - radians($3))
+                  + sin(radians($2)) * sin(radians(lat))
+                )
+              ) <= radius_km
+            ORDER BY created_at DESC
+            LIMIT 1
+          `,
+          [deviceId, lat, lng],
+        )
+      : await db.query(
+          `
+            SELECT id, created_at, lat, lng, sender_device_id
+            FROM guardian_alerts
+            WHERE sender_device_id <> $1
+              AND created_at > NOW() - INTERVAL '90 seconds'
+              AND resolved_at IS NULL
+            ORDER BY created_at DESC
+            LIMIT 1
+          `,
+          [deviceId],
+        );
+    const latestIncomingAlert = incomingAlertsResult.rows?.[0];
+    const hasIncomingAlert = Boolean(latestIncomingAlert);
+    const alertPrecision = lat !== null && lng !== null ? 'exact' : 'approximate';
+
     return {
       statusCode: 200,
       headers: {
@@ -141,6 +258,14 @@ export const handler: Handler = async (event) => {
         trend: 'stable',
         engine: 'NETLIFY_POSTGRES',
         latency: `${Date.now() - startedAt}ms`,
+        nearbyCount,
+        incomingAlerts: hasIncomingAlert ? 1 : 0,
+        latestAlertId: hasIncomingAlert ? String(latestIncomingAlert.id) : null,
+        latestAlertAt: hasIncomingAlert ? latestIncomingAlert.created_at : null,
+        latestAlertLat: hasIncomingAlert ? Number(latestIncomingAlert.lat) : null,
+        latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert.lng) : null,
+        latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert.sender_device_id)) : null,
+        latestAlertPrecision: hasIncomingAlert ? alertPrecision : null,
         session_id: toSessionId(deviceId),
         ip_mask: userIP.replace(/\.\d+$/, '.***'),
       }),

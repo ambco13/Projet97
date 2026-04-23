@@ -14,9 +14,22 @@ interface Props {
 const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, translations: t }) => {
   const [seconds, setSeconds] = useState(0);
   const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [nearbyGuardians, setNearbyGuardians] = useState<number | null>(null);
   const voiceTimerRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const autoOpenedRef = useRef(false);
+  const nearbyAlertSentRef = useRef(false);
+
+  const getOrCreateDeviceId = () => {
+    const key = 'p97_device_id';
+    let deviceId = localStorage.getItem(key);
+    if (!deviceId) {
+      const uuid = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      deviceId = `p97_${uuid}`;
+      localStorage.setItem(key, deviceId);
+    }
+    return deviceId;
+  };
 
   const startTracking = () => {
     if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
@@ -42,6 +55,37 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
     window.location.href = smsUrl;
   };
 
+  const sendNearbyAlert = async (position: { lat: number; lng: number }) => {
+    const payload = {
+      action: 'alert',
+      radiusKm: 1,
+      deviceId: getOrCreateDeviceId(),
+      lat: position.lat,
+      lng: position.lng,
+    };
+
+    const endpoints = ['/.netlify/functions/presence', '/api/presence'];
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) continue;
+        const data = await response.json();
+        const count = Number.isFinite(Number(data.nearbyCount)) ? Number(data.nearbyCount) : 0;
+        setNearbyGuardians(Math.max(0, count));
+        return;
+      } catch {
+        // Try next endpoint
+      }
+    }
+
+    setNearbyGuardians(0);
+  };
+
   useEffect(() => {
     if (!coords || autoOpenedRef.current || contacts.length === 0) return;
     autoOpenedRef.current = true;
@@ -49,6 +93,12 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
     const message = `${t.sosActive}! Location: ${url}`;
     sendSMSFallback(message);
   }, [coords, contacts.length, t.sosActive]);
+
+  useEffect(() => {
+    if (!coords || nearbyAlertSentRef.current) return;
+    nearbyAlertSentRef.current = true;
+    sendNearbyAlert(coords);
+  }, [coords]);
 
   useEffect(() => {
     const timer = setInterval(() => setSeconds(s => s + 1), 1000);
@@ -96,6 +146,11 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
               <p className="text-white/60 font-black text-[10px] uppercase tracking-widest">{t.voiceDeterrence}</p>
             </div>
             <p className="text-neutral-400 text-[11px] font-medium leading-relaxed italic italic-red-selection">"{t.voiceMsg}"</p>
+            {nearbyGuardians !== null && (
+              <p className="text-[10px] text-blue-300 font-semibold mt-3">
+                {nearbyGuardians} {t.nearbyGuardians}
+              </p>
+            )}
           </div>
         </div>
 

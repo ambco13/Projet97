@@ -21,4 +21,5 @@ export interface AppConfig {
   contacts: Contact[];
   guardianNetwork: boolean;
   language: string;
+  protectionEnabled: boolean;
 }
