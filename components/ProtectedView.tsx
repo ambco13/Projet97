@@ -19,6 +19,9 @@ interface PresenceResponse {
   latency?: string;
   incomingAlerts?: number;
   latestAlertId?: string | null;
+  latestAlertLat?: number | null;
+  latestAlertLng?: number | null;
+  latestAlertSender?: string | null;
 }
 
 const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
@@ -35,6 +38,8 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   });
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
   const [incomingAlertActive, setIncomingAlertActive] = useState(false);
+  const [incomingAlertCoords, setIncomingAlertCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [incomingAlertSender, setIncomingAlertSender] = useState<string | null>(null);
   const previousCountRef = useRef(0);
   const lastIncomingAlertIdRef = useRef<string | null>(null);
   const getCurrentCoordinates = () =>
@@ -122,10 +127,16 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         const safeCount = Number.isFinite(Number(data.count)) ? Math.max(0, Number(data.count)) : 0;
         const hasIncomingAlert = Number(data.incomingAlerts || 0) > 0;
         const latestAlertId = data.latestAlertId || null;
+        const latestAlertLat = Number.isFinite(Number(data.latestAlertLat)) ? Number(data.latestAlertLat) : null;
+        const latestAlertLng = Number.isFinite(Number(data.latestAlertLng)) ? Number(data.latestAlertLng) : null;
 
         setDbStatus('LIVE');
         setGuardianCount(safeCount);
         setIncomingAlertActive(hasIncomingAlert);
+        setIncomingAlertCoords(hasIncomingAlert && latestAlertLat !== null && latestAlertLng !== null
+          ? { lat: latestAlertLat, lng: latestAlertLng }
+          : null);
+        setIncomingAlertSender(hasIncomingAlert ? (data.latestAlertSender || null) : null);
         setCloudInfo({
           latency: data.latency || 'n/a',
           engine: data.engine || 'CLOUD_UNKNOWN',
@@ -237,8 +248,21 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
 
       <div className="space-y-4">
         {incomingAlertActive && (
-          <div className="bg-red-600/20 border border-red-500/40 p-4 rounded-2xl text-red-100 text-xs font-bold tracking-wide">
-            ⚠️ {t.nearbySosDetected || 'SOS détecté à proximité (rayon 1 km)'}
+          <div className="bg-red-600/20 border border-red-500/40 p-4 rounded-2xl text-red-100 text-xs font-bold tracking-wide space-y-2">
+            <p>⚠️ {t.nearbySosDetected || 'SOS détecté à proximité (rayon 1 km)'}</p>
+            {incomingAlertSender && (
+              <p className="text-[10px] text-red-200/90">{t.sender || 'Émetteur'}: {incomingAlertSender}</p>
+            )}
+            {incomingAlertCoords && (
+              <a
+                className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-red-500/25 border border-red-400/50 hover:bg-red-500/35 transition-colors text-[11px]"
+                href={`https://www.google.com/maps?q=${incomingAlertCoords.lat},${incomingAlertCoords.lng}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {t.viewRequesterLocation || 'Voir la position de la personne en danger'}
+              </a>
+            )}
           </div>
         )}
         {cloudInfo && (

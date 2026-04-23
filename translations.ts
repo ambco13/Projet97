@@ -62,7 +62,9 @@ export const translations: Record<string, any> = {
     latency: "Latence",
     engine: "Moteur",
     nearbyGuardians: "gardiens proches alertés (≤ 1 km)",
-    nearbySosDetected: "SOS détecté à proximité (rayon 1 km)"
+    nearbySosDetected: "SOS détecté à proximité (rayon 1 km)",
+    sender: "Émetteur",
+    viewRequesterLocation: "Voir la position de la personne en danger"
   },
   en: {
     appTitle: "Project 97",
@@ -119,6 +121,8 @@ export const translations: Record<string, any> = {
     latency: "Latency",
     engine: "Engine",
     nearbyGuardians: "nearby guardians alerted (≤ 1 km)",
-    nearbySosDetected: "Nearby SOS detected (1 km radius)"
+    nearbySosDetected: "Nearby SOS detected (1 km radius)",
+    sender: "Sender",
+    viewRequesterLocation: "View requester location"
   }
 };

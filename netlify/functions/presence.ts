@@ -200,7 +200,7 @@ export const handler: Handler = async (event) => {
 
     const incomingAlertsResult = await db.query(
       `
-        SELECT id, created_at
+        SELECT id, created_at, lat, lng, sender_device_id
         FROM guardian_alerts
         WHERE sender_device_id <> $1
           AND created_at > NOW() - INTERVAL '90 seconds'
@@ -234,6 +234,9 @@ export const handler: Handler = async (event) => {
         incomingAlerts: hasIncomingAlert ? 1 : 0,
         latestAlertId: hasIncomingAlert ? String(latestIncomingAlert.id) : null,
         latestAlertAt: hasIncomingAlert ? latestIncomingAlert.created_at : null,
+        latestAlertLat: hasIncomingAlert ? Number(latestIncomingAlert.lat) : null,
+        latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert.lng) : null,
+        latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert.sender_device_id)) : null,
         session_id: toSessionId(deviceId),
         ip_mask: userIP.replace(/\.\d+$/, '.***'),
       }),
