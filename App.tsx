@@ -170,6 +170,18 @@ const App: React.FC = () => {
     setIsListening(false);
   }, []);
 
+  const stopListening = useCallback(() => {
+    if (restartListenTimeoutRef.current) {
+      clearTimeout(restartListenTimeoutRef.current);
+      restartListenTimeoutRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch(e) {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
+
   const startListening = useCallback(() => {
     if (document.visibilityState !== 'visible') return;
 
