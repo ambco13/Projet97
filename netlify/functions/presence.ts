@@ -69,10 +69,20 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const body = JSON.parse(event.body || '{}') as { deviceId?: unknown };
+    const body = JSON.parse(event.body || '{}') as {
+      action?: unknown;
+      deviceId?: unknown;
+      lat?: unknown;
+      lng?: unknown;
+      radiusKm?: unknown;
+    };
     const deviceId = typeof body.deviceId === 'string' && body.deviceId.trim().length > 0
       ? body.deviceId.trim()
       : 'anonymous_device';
+    const action = body.action === 'alert' ? 'alert' : 'presence';
+    const lat = Number.isFinite(Number(body.lat)) ? Number(body.lat) : null;
+    const lng = Number.isFinite(Number(body.lng)) ? Number(body.lng) : null;
+    const radiusKm = Number.isFinite(Number(body.radiusKm)) ? Math.max(0.1, Number(body.radiusKm)) : 1;
     const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
 
     const startedAt = Date.now();
@@ -97,20 +107,28 @@ export const handler: Handler = async (event) => {
       CREATE TABLE IF NOT EXISTS presence (
         device_id TEXT PRIMARY KEY,
         ip TEXT,
+        lat DOUBLE PRECISION,
+        lng DOUBLE PRECISION,
+        last_emergency_at TIMESTAMPTZ,
         last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`);
+    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`);
+    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS last_emergency_at TIMESTAMPTZ`);
 
     await db.query(
       `
-        INSERT INTO presence (device_id, ip, last_seen)
-        VALUES ($1, $2, NOW())
+        INSERT INTO presence (device_id, ip, lat, lng, last_seen)
+        VALUES ($1, $2, $3, $4, NOW())
         ON CONFLICT (device_id)
         DO UPDATE SET
           ip = EXCLUDED.ip,
+          lat = COALESCE(EXCLUDED.lat, presence.lat),
+          lng = COALESCE(EXCLUDED.lng, presence.lng),
           last_seen = NOW()
       `,
-      [deviceId, userIP],
+      [deviceId, userIP, lat, lng],
     );
 
     await db.query(
@@ -130,6 +148,38 @@ export const handler: Handler = async (event) => {
 
     const finalCount = Number(countResult.rows?.[0]?.count ?? 0);
 
+    let nearbyCount = 0;
+    if (action === 'alert' && lat !== null && lng !== null) {
+      await db.query(
+        `
+          UPDATE presence
+          SET last_emergency_at = NOW()
+          WHERE device_id = $1
+        `,
+        [deviceId],
+      );
+
+      const nearbyResult = await db.query(
+        `
+          SELECT COUNT(*)::int AS count
+          FROM presence
+          WHERE device_id <> $1
+            AND last_seen > NOW() - INTERVAL '${ACTIVE_WINDOW_SQL}'
+            AND lat IS NOT NULL
+            AND lng IS NOT NULL
+            AND (
+              6371 * acos(
+                cos(radians($2)) * cos(radians(lat))
+                * cos(radians(lng) - radians($3))
+                + sin(radians($2)) * sin(radians(lat))
+              )
+            ) <= $4
+        `,
+        [deviceId, lat, lng, radiusKm],
+      );
+      nearbyCount = Number(nearbyResult.rows?.[0]?.count ?? 0);
+    }
+
     return {
       statusCode: 200,
       headers: {
@@ -141,6 +191,7 @@ export const handler: Handler = async (event) => {
         trend: 'stable',
         engine: 'NETLIFY_POSTGRES',
         latency: `${Date.now() - startedAt}ms`,
+        nearbyCount,
         session_id: toSessionId(deviceId),
         ip_mask: userIP.replace(/\.\d+$/, '.***'),
       }),

@@ -21,6 +21,7 @@ interface PresenceResponse {
 
 const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
 const POLL_INTERVAL_MS = 10000;
+const DEVICE_ID_KEY = 'p97_device_id';
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, onTrigger, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
@@ -32,6 +33,19 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   });
   const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
   const previousCountRef = useRef(0);
+  const getCurrentCoordinates = () =>
+    new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 4000, maximumAge: 15000 },
+      );
+    });
 
   useEffect(() => {
     const pulseInterval = setInterval(() => setPulse((p) => !p), 2000);
@@ -62,13 +76,14 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
 
       setDbStatus('CONNECTING');
 
-      const deviceIdKey = 'p97_device_id';
-      let deviceId = localStorage.getItem(deviceIdKey);
+      let deviceId = localStorage.getItem(DEVICE_ID_KEY);
       if (!deviceId) {
         const uuid = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
         deviceId = `p97_${uuid}`;
-        localStorage.setItem(deviceIdKey, deviceId);
+        localStorage.setItem(DEVICE_ID_KEY, deviceId);
       }
+
+      const coords = await getCurrentCoordinates();
 
       try {
         let response: Response | null = null;
@@ -79,7 +94,11 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ deviceId }),
+              body: JSON.stringify({
+                deviceId,
+                lat: coords?.lat,
+                lng: coords?.lng,
+              }),
             });
 
             if (candidate.ok) {
