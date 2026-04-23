@@ -16,6 +16,17 @@ const GEO_OPTIONS = {
 };
 
 const SHAKE_THRESHOLD = 15; // Sensibilité du secouement
+const VOICE_TRIGGER_PATTERNS = [
+  /\b97\b/,
+  /\bninety[\s-]?seven\b/,
+  /\bquatre[\s-]?vingt[\s-]?dix[\s-]?sept\b/,
+  /\bnoventa[\s-]?y[\s-]?siete\b/,
+  /\bsiebenundneunzig\b/,
+  /\bnovantasette\b/,
+  /\bתשעים[\s-]?ושבע\b/,
+  /\bسبعة[\s-]?وتسعون\b/,
+  /\bдевяносто[\s-]?семь\b/,
+];
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>('SETUP');
@@ -123,7 +134,8 @@ const App: React.FC = () => {
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event: any) => {
         const result = event.results[event.results.length - 1][0].transcript.toLowerCase();
-        if (result.includes('97')) {
+        const shouldTrigger = VOICE_TRIGGER_PATTERNS.some((pattern) => pattern.test(result));
+        if (shouldTrigger) {
           triggerEmergency('VOICE COMMAND');
         }
       };
