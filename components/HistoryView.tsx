@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X, Calendar, MapPin, Mic, ShieldCheck, Download, Share2, Layers, Clock3, ChevronUp } from 'lucide-react';
 import { EmergencyLog } from '../types';
 import MapView from './MapView';
@@ -30,24 +30,69 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
     URL.revokeObjectURL(url);
   };
 
+  const shareLog = async (log: EmergencyLog) => {
+    const text = `${isFrench ? 'Alerte' : 'Alert'} #${log.id.slice(-6)}\n${log.detail}\n${log.timestamp}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `Project 97 - ${log.type}`, text });
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        window.alert(isFrench ? 'Détails copiés dans le presse-papiers.' : 'Details copied to clipboard.');
+      }
+    } catch {
+      // Ignore cancel/unavailable share errors
+    }
+  };
+
   const filterLabels: Record<LogFilter, string> = {
     ALL: isFrench ? 'Tout' : 'All',
     TRIGGER: isFrench ? 'SOS' : 'SOS',
-    AUDIO: isFrench ? 'Audio' : 'Audio',
+    AUDIO: isFrench ? 'Enregistrement' : 'Recording',
     LOCATION: isFrench ? 'GPS' : 'GPS',
-    DETERRENCE: isFrench ? 'Vocal' : 'Voice',
+    DETERRENCE: isFrench ? 'Vocal SOS' : 'SOS voice',
     SYSTEM: isFrench ? 'Système' : 'System',
   };
 
-  const filters = useMemo(() => {
-    const allFilters: LogFilter[] = ['ALL', 'TRIGGER', 'AUDIO', 'LOCATION', 'DETERRENCE', 'SYSTEM'];
-    return allFilters.filter((filter) => filter === 'ALL' || logs.some((log) => log.type === filter));
+  const typeDescriptions: Record<EmergencyLog['type'], string> = {
+    TRIGGER: isFrench ? 'Déclenchement SOS (manuel, voix, secousse...)' : 'SOS trigger (manual, voice, shake...)',
+    AUDIO: isFrench ? 'Aucun enregistrement vocal actuellement (catégorie réservée pour une future version)' : 'No voice recording currently (reserved category for a future version)',
+    LOCATION: isFrench ? 'Position GPS envoyée' : 'GPS position update',
+    DETERRENCE: isFrench ? 'Message vocal anti-agression diffusé pendant le SOS (diffusion uniquement, pas d’enregistrement)' : 'Automatic deterrence voice message played during SOS (playback only, no recording)',
+    SYSTEM: isFrench ? 'Événement technique de l’application' : 'Technical app event',
+  };
+
+  const allFilters: LogFilter[] = ['ALL', 'TRIGGER', 'AUDIO', 'LOCATION', 'DETERRENCE', 'SYSTEM'];
+
+  const disabledFilters = useMemo(() => {
+    return allFilters.reduce<Record<LogFilter, boolean>>((acc, filter) => {
+      if (filter === 'ALL') {
+        acc[filter] = false;
+        return acc;
+      }
+      acc[filter] = !logs.some((log) => log.type === filter);
+      return acc;
+    }, {
+      ALL: false,
+      TRIGGER: false,
+      AUDIO: false,
+      LOCATION: false,
+      DETERRENCE: false,
+      SYSTEM: false,
+    });
   }, [logs]);
 
   const filteredLogs = useMemo(() => {
     if (activeFilter === 'ALL') return logs;
     return logs.filter((log) => log.type === activeFilter);
   }, [activeFilter, logs]);
+
+  useEffect(() => {
+    if (activeFilter !== 'ALL' && disabledFilters[activeFilter]) {
+      setActiveFilter('ALL');
+    }
+  }, [activeFilter, disabledFilters]);
 
   const typeCount = useMemo(() => logs.reduce<Record<EmergencyLog['type'], number>>((acc, log) => {
     acc[log.type] = (acc[log.type] || 0) + 1;
@@ -67,15 +112,22 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
       </div>
 
       <div className="mb-4 rounded-3xl border border-white/10 bg-neutral-900/40 p-3">
-        <div className="grid grid-cols-5 gap-2">
-          {(['TRIGGER', 'AUDIO', 'LOCATION', 'DETERRENCE', 'SYSTEM'] as EmergencyLog['type'][]).map((type) => (
+        <div className="grid grid-cols-3 gap-2">
+          {allFilters.filter((filter) => filter !== 'ALL').map((type) => (
             <button
               key={type}
-              onClick={() => setActiveFilter(type)}
-              className={`rounded-xl py-2 text-center transition ${activeFilter === type ? 'bg-red-600/30 border border-red-500/60' : 'bg-white/5 border border-transparent'}`}
+              onClick={() => !disabledFilters[type] && setActiveFilter(type)}
+              disabled={disabledFilters[type]}
+              className={`rounded-xl py-2 text-center transition ${
+                disabledFilters[type]
+                  ? 'bg-white/[0.03] text-neutral-600 border border-transparent cursor-not-allowed opacity-45'
+                  : activeFilter === type
+                    ? 'bg-red-600/30 border border-red-500/60'
+                    : 'bg-white/5 border border-transparent'
+              }`}
             >
               <p className="text-[8px] text-neutral-400 font-black uppercase">{filterLabels[type]}</p>
-              <p className="text-xs font-black text-white">{typeCount[type] || 0}</p>
+              <p className="text-xs font-black text-white">{typeCount[type as EmergencyLog['type']] || 0}</p>
             </button>
           ))}
         </div>
@@ -85,6 +137,11 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
         >
           {isFrench ? 'Vue mosaïque complète' : 'Full mosaic view'} · {logs.length}
         </button>
+        {activeFilter !== 'ALL' && (
+          <p className="mt-2 text-[10px] text-neutral-400 leading-snug">
+            {typeDescriptions[activeFilter as EmergencyLog['type']]}
+          </p>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -142,11 +199,15 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setSelectedMap(selectedLog)}
-                className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase"
+                disabled={!selectedLog.coordinates}
+                className="bg-white/5 disabled:opacity-40 py-3 rounded-xl text-[9px] font-black uppercase"
               >
                 <MapPin size={12} className="mx-auto mb-1" />{t.map}
               </button>
-              <button className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase">
+              <button
+                onClick={() => shareLog(selectedLog)}
+                className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase"
+              >
                 <Share2 size={12} className="mx-auto mb-1" />{t.share}
               </button>
               <button
