@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Calendar, MapPin, Mic, ShieldCheck, Download, Share2, ChevronRight, Layers } from 'lucide-react';
+import { X, Calendar, MapPin, Mic, ShieldCheck, Download, Share2, Layers, Clock3, ChevronUp } from 'lucide-react';
 import { EmergencyLog } from '../types';
 import MapView from './MapView';
 
@@ -14,6 +14,7 @@ type LogFilter = 'ALL' | EmergencyLog['type'];
 
 const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t }) => {
   const [selectedMap, setSelectedMap] = useState<EmergencyLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<EmergencyLog | null>(null);
   const [activeFilter, setActiveFilter] = useState<LogFilter>('ALL');
 
   const isFrench = language === 'fr';
@@ -31,19 +32,16 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
 
   const filterLabels: Record<LogFilter, string> = {
     ALL: isFrench ? 'Tout' : 'All',
-    TRIGGER: isFrench ? 'Alertes' : 'Alerts',
+    TRIGGER: isFrench ? 'SOS' : 'SOS',
     AUDIO: isFrench ? 'Audio' : 'Audio',
     LOCATION: isFrench ? 'GPS' : 'GPS',
-    DETERRENCE: isFrench ? 'Dissuasion' : 'Deterrence',
+    DETERRENCE: isFrench ? 'Vocal' : 'Voice',
     SYSTEM: isFrench ? 'Système' : 'System',
   };
 
   const filters = useMemo(() => {
     const allFilters: LogFilter[] = ['ALL', 'TRIGGER', 'AUDIO', 'LOCATION', 'DETERRENCE', 'SYSTEM'];
-    return allFilters.filter((filter) => {
-      if (filter === 'ALL') return true;
-      return logs.some((log) => log.type === filter);
-    });
+    return allFilters.filter((filter) => filter === 'ALL' || logs.some((log) => log.type === filter));
   }, [logs]);
 
   const filteredLogs = useMemo(() => {
@@ -51,9 +49,14 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
     return logs.filter((log) => log.type === activeFilter);
   }, [activeFilter, logs]);
 
+  const typeCount = useMemo(() => logs.reduce<Record<EmergencyLog['type'], number>>((acc, log) => {
+    acc[log.type] = (acc[log.type] || 0) + 1;
+    return acc;
+  }, { TRIGGER: 0, AUDIO: 0, LOCATION: 0, DETERRENCE: 0, SYSTEM: 0 }), [logs]);
+
   return (
-    <div className="p-8 flex flex-col h-full animate-in slide-in-from-right duration-500 bg-[#050505]">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-6 flex flex-col h-full animate-in slide-in-from-right duration-500 bg-[#050505]">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-3xl font-black text-white tracking-tighter">{t.logs}</h2>
           <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t.securityReports}</p>
@@ -63,28 +66,25 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
         </button>
       </div>
 
-      <div className="mb-6 rounded-3xl border border-white/10 bg-neutral-900/40 p-4">
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 font-black">
-            {isFrench ? 'Vue compacte' : 'Compact view'}
-          </p>
-          <div className="text-[10px] text-neutral-500 font-mono">{filteredLogs.length} / {logs.length}</div>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-          {filters.map((filter) => (
+      <div className="mb-4 rounded-3xl border border-white/10 bg-neutral-900/40 p-3">
+        <div className="grid grid-cols-5 gap-2">
+          {(['TRIGGER', 'AUDIO', 'LOCATION', 'DETERRENCE', 'SYSTEM'] as EmergencyLog['type'][]).map((type) => (
             <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition ${
-                activeFilter === filter
-                  ? 'bg-red-600 text-white'
-                  : 'bg-white/5 text-neutral-300 hover:bg-white/10'
-              }`}
+              key={type}
+              onClick={() => setActiveFilter(type)}
+              className={`rounded-xl py-2 text-center transition ${activeFilter === type ? 'bg-red-600/30 border border-red-500/60' : 'bg-white/5 border border-transparent'}`}
             >
-              {filterLabels[filter]}
+              <p className="text-[8px] text-neutral-400 font-black uppercase">{filterLabels[type]}</p>
+              <p className="text-xs font-black text-white">{typeCount[type] || 0}</p>
             </button>
           ))}
         </div>
+        <button
+          onClick={() => setActiveFilter('ALL')}
+          className={`w-full mt-2 rounded-xl py-2 text-[10px] font-black uppercase tracking-wider ${activeFilter === 'ALL' ? 'bg-white text-black' : 'bg-white/5 text-neutral-300'}`}
+        >
+          {isFrench ? 'Vue mosaïque complète' : 'Full mosaic view'} · {logs.length}
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -97,55 +97,71 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
         ) : filteredLogs.length === 0 ? (
           <div className="py-20 text-center text-neutral-500">
             <Layers size={36} className="mx-auto mb-3" />
-            <p className="font-black uppercase text-xs tracking-widest">{isFrench ? 'Aucun événement dans ce filtre' : 'No events in this filter'}</p>
+            <p className="font-black uppercase text-xs tracking-widest">{isFrench ? 'Rien à afficher' : 'Nothing to display'}</p>
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 custom-scrollbar">
+          <div className="grid grid-cols-2 gap-3 pb-2">
             {filteredLogs.map((log) => (
-              <div
+              <button
                 key={log.id}
-                className="snap-start shrink-0 w-[82%] bg-neutral-900/50 p-5 rounded-[2rem] border border-white/10"
+                onClick={() => setSelectedLog(log)}
+                className="text-left bg-neutral-900/60 rounded-2xl border border-white/10 p-3 min-h-28 hover:border-red-500/40 transition"
               >
-                <div className="text-[10px] font-mono text-neutral-600 mb-4 flex justify-between">
-                  <span>REF: {log.id.slice(-6)}</span>
-                  <span>{log.timestamp}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono text-neutral-500">#{log.id.slice(-4)}</span>
+                  <span className="text-[9px] text-neutral-500">{log.timestamp}</span>
                 </div>
-
-                <div className="flex items-start gap-3 mb-5">
-                  <div className={`p-3 rounded-2xl ${log.type === 'TRIGGER' ? 'bg-red-500/15 text-red-500' : 'bg-neutral-800 text-neutral-300'}`}>
-                    {log.type === 'TRIGGER' ? <Mic size={18} /> : <ShieldCheck size={18} />}
+                <div className="flex items-start gap-2">
+                  <div className={`p-2 rounded-xl ${log.type === 'TRIGGER' ? 'bg-red-500/15 text-red-500' : 'bg-white/5 text-neutral-300'}`}>
+                    {log.type === 'TRIGGER' ? <Mic size={14} /> : <ShieldCheck size={14} />}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">{log.type}</p>
-                    <p className="font-bold text-white text-sm leading-tight">{log.detail}</p>
+                    <p className="text-[9px] uppercase tracking-wider text-neutral-500 font-black">{filterLabels[log.type] ?? log.type}</p>
+                    <p className="text-xs text-white font-bold leading-tight line-clamp-2">{log.detail}</p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <button onClick={() => setSelectedMap(log)} className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase">
-                    <MapPin size={12} className="mx-auto mb-1" />{t.map}
-                  </button>
-                  <button className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase">
-                    <Share2 size={12} className="mx-auto mb-1" />{t.share}
-                  </button>
-                  <button onClick={() => downloadProof(log)} className="bg-red-600/10 py-3 rounded-xl text-[9px] font-black uppercase">
-                    <Download size={12} className="mx-auto mb-1" />{t.proof}
-                  </button>
-                </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
       </div>
 
-      {filteredLogs.length > 1 && (
-        <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-neutral-500 font-black flex items-center justify-center gap-1">
-          {isFrench ? 'Glisse pour parcourir' : 'Swipe to browse'} <ChevronRight size={12} />
-        </p>
+      {selectedLog && (
+        <div className="fixed inset-0 z-[115] bg-black/75 backdrop-blur-sm flex items-end">
+          <div className="w-full rounded-t-[2rem] border-t border-white/10 bg-[#090909] p-5 animate-in slide-in-from-bottom duration-300">
+            <div className="w-12 h-1.5 rounded-full bg-neutral-700 mx-auto mb-4" />
+            <div className="flex justify-between items-start gap-3 mb-4">
+              <div>
+                <p className="text-[10px] text-neutral-500 font-mono mb-1">REF: {selectedLog.id.slice(-6)}</p>
+                <p className="text-sm text-white font-black">{selectedLog.detail}</p>
+                <p className="text-[10px] uppercase tracking-wider text-neutral-500 mt-1 flex items-center gap-1"><Clock3 size={11} /> {selectedLog.timestamp}</p>
+              </div>
+              <button onClick={() => setSelectedLog(null)} className="p-2 rounded-xl bg-white/5"><ChevronUp size={16} /></button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => setSelectedMap(selectedLog)}
+                className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase"
+              >
+                <MapPin size={12} className="mx-auto mb-1" />{t.map}
+              </button>
+              <button className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase">
+                <Share2 size={12} className="mx-auto mb-1" />{t.share}
+              </button>
+              <button
+                onClick={() => downloadProof(selectedLog)}
+                className="bg-red-600/10 py-3 rounded-xl text-[9px] font-black uppercase"
+              >
+                <Download size={12} className="mx-auto mb-1" />{t.proof}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {selectedMap && (
-        <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-xl flex flex-col p-8 animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-xl flex flex-col p-8 animate-in zoom-in-95 duration-300">
           <button onClick={() => setSelectedMap(null)} className="p-2 bg-neutral-900 rounded-xl ml-auto mb-6">
             <X size={20} />
           </button>
