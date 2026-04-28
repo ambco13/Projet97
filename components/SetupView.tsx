@@ -68,7 +68,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
 
   return (
     <div className="p-8 pb-32 animate-in fade-in slide-in-from-bottom-6 duration-700 relative min-h-full">
-      <div className={`absolute top-6 z-50 ${isRtl ? 'left-6' : 'right-6'}`}>
+      <div className={`absolute top-20 z-50 ${isRtl ? 'left-6' : 'right-6'}`}>
         <button 
           onClick={() => setShowLangMenu(!showLangMenu)}
           className="flex items-center gap-2 bg-neutral-900/60 hover:bg-neutral-800/80 backdrop-blur-xl border border-white/10 px-3 py-2 rounded-2xl text-neutral-400 hover:text-white transition-all active:scale-95 shadow-xl"
@@ -118,13 +118,16 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
           </div>
         </div>
       ) : (
-        <div className="mb-10 flex items-center justify-between">
+        <div className="mb-10 relative min-h-14">
           <div>
             <h2 className="text-3xl font-black text-white tracking-tighter">{t.settings}</h2>
             <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t.protocolEdition}</p>
           </div>
           {onCancel && (
-            <button onClick={onCancel} className={`p-3 bg-neutral-900 rounded-2xl text-neutral-400 hover:text-white transition-colors ${isRtl ? 'ml-14' : 'mr-14'}`}>
+            <button
+              onClick={onCancel}
+              className={`absolute top-0 ${isRtl ? 'left-0' : 'right-0'} p-3 bg-neutral-900 rounded-2xl text-neutral-400 hover:text-white transition-colors`}
+            >
               {isRtl ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
             </button>
           )}
