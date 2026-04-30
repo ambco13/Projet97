@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Trash2, ShieldCheck, Key, MapPin, ArrowLeft, Globe, ChevronDown, Mic, Cloud } from 'lucide-react';
+import { UserPlus, Trash2, ShieldCheck, Key, MapPin, ArrowLeft, ArrowRight, Globe, ChevronDown, Mic, Cloud } from 'lucide-react';
 import { Contact, AppConfig } from '../types';
 import { languages } from '../translations';
 
@@ -23,6 +23,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
   const [micState, setMicState] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>(initialConfig?.pin ? 'SUCCESS' : 'IDLE');
   const [dbState, setDbState] = useState<'OFFLINE' | 'SYNCING' | 'CONNECTED'>('SYNCING');
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const isRtl = (languages[language] || languages.fr).dir === 'rtl';
 
   useEffect(() => {
     if (!initialConfig?.pin) {
@@ -67,7 +68,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
 
   return (
     <div className="p-8 pb-32 animate-in fade-in slide-in-from-bottom-6 duration-700 relative min-h-full">
-      <div className="absolute top-6 right-6 z-50">
+      <div className={`absolute top-20 z-50 ${isRtl ? 'left-6' : 'right-6'}`}>
         <button 
           onClick={() => setShowLangMenu(!showLangMenu)}
           className="flex items-center gap-2 bg-neutral-900/60 hover:bg-neutral-800/80 backdrop-blur-xl border border-white/10 px-3 py-2 rounded-2xl text-neutral-400 hover:text-white transition-all active:scale-95 shadow-xl"
@@ -80,7 +81,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
         </button>
 
         {showLangMenu && (
-          <div className="absolute top-full right-0 mt-4 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.6)] min-w-[160px] animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className={`absolute top-full mt-4 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.6)] min-w-[160px] animate-in fade-in slide-in-from-top-2 duration-300 ${isRtl ? 'left-0' : 'right-0'}`}>
             {Object.entries(languages).map(([code, meta]) => (
               <button
                 key={code}
@@ -117,14 +118,17 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
           </div>
         </div>
       ) : (
-        <div className="mb-10 flex items-center justify-between">
+        <div className="mb-10 relative min-h-14">
           <div>
             <h2 className="text-3xl font-black text-white tracking-tighter">{t.settings}</h2>
             <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t.protocolEdition}</p>
           </div>
           {onCancel && (
-            <button onClick={onCancel} className="p-3 bg-neutral-900 rounded-2xl text-neutral-400 hover:text-white transition-colors mr-14">
-              <ArrowLeft size={20} />
+            <button
+              onClick={onCancel}
+              className={`absolute top-0 ${isRtl ? 'left-0' : 'right-0'} p-3 bg-neutral-900 rounded-2xl text-neutral-400 hover:text-white transition-colors`}
+            >
+              {isRtl ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
             </button>
           )}
         </div>
