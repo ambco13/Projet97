@@ -12,5 +12,4 @@ const toAbsolute = (path: string) => (baseUrl ? `${baseUrl}${path}` : path);
 export const PRESENCE_ENDPOINTS = [
   toAbsolute('/api/presence'),
   '/api/presence',
-  '/.netlify/functions/presence',
 ];
