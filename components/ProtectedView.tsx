@@ -27,7 +27,7 @@ interface PresenceResponse {
   latestAlertPrecision?: 'exact' | 'approximate' | null;
 }
 
-const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
+const PRESENCE_ENDPOINTS = ['/api/presence', '/.netlify/functions/presence'];
 const POLL_INTERVAL_MS = 10000;
 const DEVICE_ID_KEY = 'p97_device_id';
 const ALERT_NOTIFICATION_TAG = 'p97-nearby-sos';

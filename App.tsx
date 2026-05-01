@@ -117,7 +117,7 @@ const App: React.FC = () => {
 
   const resolveEmergencyAlert = useCallback(async () => {
     const payload = { action: 'resolve', deviceId: getOrCreateDeviceId() };
-    const endpoints = ['/.netlify/functions/presence', '/api/presence'];
+    const endpoints = ['/api/presence', '/.netlify/functions/presence'];
     for (const endpoint of endpoints) {
       try {
         await fetch(endpoint, {
