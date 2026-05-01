@@ -25,3 +25,11 @@ L'application peut fonctionner sans backend/DB :
 - aucun endpoint externe n'est requis pour afficher l'interface ;
 - le compteur communautaire est calculé localement dans l'app ;
 - aucun paramétrage `DATABASE_URL` n'est nécessaire pour l'usage local.
+
+## Déploiement Cloudflare Pages
+
+- Endpoint backend principal: `/api/presence` (Cloudflare Pages Function).
+- Fallback legacy conservé: `/.netlify/functions/presence`.
+- Variables d'environnement à configurer dans Cloudflare:
+  - `DATABASE_URL` (recommandé)
+  - ou `NETLIFY_DATABASE_URL` / `NETLIFY_DATABASE_URL_UNPOOLED` (compatibilité migration)

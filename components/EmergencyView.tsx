@@ -64,7 +64,7 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
       lng: position.lng,
     };
 
-    const endpoints = ['/.netlify/functions/presence', '/api/presence'];
+    const endpoints = ['/api/presence', '/.netlify/functions/presence'];
     for (const endpoint of endpoints) {
       try {
         const response = await fetch(endpoint, {
