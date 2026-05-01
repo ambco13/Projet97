@@ -8,6 +8,7 @@ import EmergencyView from './components/EmergencyView';
 import HistoryView from './components/HistoryView';
 import PinPad from './components/PinPad';
 import { translations, languages } from './translations';
+import { PRESENCE_ENDPOINTS } from './apiEndpoints';
 
 const GEO_OPTIONS = {
   enableHighAccuracy: true,
@@ -117,8 +118,7 @@ const App: React.FC = () => {
 
   const resolveEmergencyAlert = useCallback(async () => {
     const payload = { action: 'resolve', deviceId: getOrCreateDeviceId() };
-    const endpoints = ['/api/presence', '/.netlify/functions/presence'];
-    for (const endpoint of endpoints) {
+    for (const endpoint of PRESENCE_ENDPOINTS) {
       try {
         await fetch(endpoint, {
           method: 'POST',

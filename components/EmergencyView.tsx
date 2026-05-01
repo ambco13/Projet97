@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Lock, Volume2, Send } from 'lucide-react';
 import { Contact } from '../types';
+import { PRESENCE_ENDPOINTS } from '../apiEndpoints';
 import MapView from './MapView';
 
 interface Props {
@@ -64,8 +65,7 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
       lng: position.lng,
     };
 
-    const endpoints = ['/api/presence', '/.netlify/functions/presence'];
-    for (const endpoint of endpoints) {
+    for (const endpoint of PRESENCE_ENDPOINTS) {
       try {
         const response = await fetch(endpoint, {
           method: 'POST',

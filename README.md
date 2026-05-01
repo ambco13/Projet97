@@ -20,16 +20,30 @@ View your app in AI Studio: https://ai.studio/apps/drive/157ltf4KM_wA2ZfBowJDiYB
 
 ## Mode local (sans API payante)
 
-L'application peut fonctionner sans backend/DB :
+L'application peut fonctionner sans backend/DB :
 
 - aucun endpoint externe n'est requis pour afficher l'interface ;
 - le compteur communautaire est calculé localement dans l'app ;
 - aucun paramétrage `DATABASE_URL` n'est nécessaire pour l'usage local.
 
-## Déploiement Cloudflare Pages
+## Migration Cloudflare (DB + domaine)
 
-- Endpoint backend principal: `/api/presence` (Cloudflare Pages Function).
+### 1) Endpoint API utilisé
+- Endpoint principal: `/api/presence` (Cloudflare Pages Function).
 - Fallback legacy conservé: `/.netlify/functions/presence`.
-- Variables d'environnement à configurer dans Cloudflare:
-  - `DATABASE_URL` (recommandé)
-  - ou `NETLIFY_DATABASE_URL` / `NETLIFY_DATABASE_URL_UNPOOLED` (compatibilité migration)
+
+### 2) Base de données
+- Variable recommandée: `DATABASE_URL`.
+- Compatibilité migration: `NETLIFY_DATABASE_URL` / `NETLIFY_DATABASE_URL_UNPOOLED`.
+- Si la DB n'est pas accessible, l'API renvoie `CLOUD_DATABASE_UNAVAILABLE`.
+
+### 3) Domaine personnalisé (pour éviter `*.workers.dev`)
+Dans le dashboard Cloudflare:
+1. Pages > ton projet > **Custom domains**.
+2. Clique **Set up a custom domain**.
+3. Ajoute un domaine type `app.projet97.com`.
+4. Mets à jour DNS chez ton registrar (CNAME/A selon l'assistant Cloudflare).
+
+### 4) URL API externe optionnelle
+Si tu veux forcer une API distante (ex: domaine custom), crée `.env`:
+`VITE_PRESENCE_BASE_URL=https://api.projet97.com`

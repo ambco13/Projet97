@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Shield, Mic, MapPin, Zap, Users, Globe, Move, ArrowUpRight, ArrowDownRight, Minus, Activity } from 'lucide-react';
 import { Contact } from '../types';
+import { PRESENCE_ENDPOINTS } from '../apiEndpoints';
 
 interface Props {
   contacts: Contact[];
@@ -27,7 +28,6 @@ interface PresenceResponse {
   latestAlertPrecision?: 'exact' | 'approximate' | null;
 }
 
-const PRESENCE_ENDPOINTS = ['/api/presence', '/.netlify/functions/presence'];
 const POLL_INTERVAL_MS = 10000;
 const DEVICE_ID_KEY = 'p97_device_id';
 const ALERT_NOTIFICATION_TAG = 'p97-nearby-sos';
