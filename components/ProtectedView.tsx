@@ -30,6 +30,23 @@ interface PresenceResponse {
 const PRESENCE_ENDPOINTS = ['/.netlify/functions/presence', '/api/presence'];
 const POLL_INTERVAL_MS = 10000;
 const DEVICE_ID_KEY = 'p97_device_id';
+const ALERT_NOTIFICATION_TAG = 'p97-nearby-sos';
+const ALERT_NOTIFICATION_COOLDOWN_MS = 30000;
+
+const ALERT_97_BY_LANG: Record<string, string> = {
+  fr: 'Alerte 97',
+  en: 'Alert 97',
+  ar: 'إنذار 97',
+  he: 'התראה 97',
+};
+const VAPID_PUBLIC_KEY = (import.meta as any).env?.VITE_VAPID_PUBLIC_KEY || '';
+
+const urlBase64ToUint8Array = (base64String: string) => {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+};
 
 const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, protectionEnabled, onTrigger, onToggleProtection, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
@@ -46,6 +63,43 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   const [incomingAlertPrecision, setIncomingAlertPrecision] = useState<'exact' | 'approximate' | null>(null);
   const previousCountRef = useRef(0);
   const lastIncomingAlertIdRef = useRef<string | null>(null);
+  const lastAlertNotificationTimeRef = useRef<number>(0);
+
+  const notifyNearbySos = async () => {
+    if (!('Notification' in window)) return;
+
+    if (Notification.permission === 'default') {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+      } catch {
+        return;
+      }
+    } else if (Notification.permission !== 'granted') {
+      return;
+    }
+
+    const title = 'Projet 97';
+    const alert97Text = ALERT_97_BY_LANG[language] || ALERT_97_BY_LANG.fr;
+    const options: NotificationOptions = {
+      body: `${alert97Text} — ${t.nearbySosDetected || 'Alerte SOS à proximité (≤ 1 km).'}`,
+      tag: ALERT_NOTIFICATION_TAG,
+      requireInteraction: true,
+    };
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.showNotification(title, options);
+          return;
+        }
+      }
+      new Notification(title, options);
+    } catch {
+      // Silent fallback
+    }
+  };
   const getCurrentCoordinates = () =>
     new Promise<{ lat: number; lng: number } | null>((resolve) => {
       if (!navigator.geolocation) {
@@ -59,6 +113,34 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         { enableHighAccuracy: true, timeout: 4000, maximumAge: 15000 },
       );
     });
+
+  useEffect(() => {
+    const subscribeForPush = async () => {
+      if (!guardianNetwork || !VAPID_PUBLIC_KEY || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        const subscription = existing || await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+        let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+        if (!deviceId) {
+          const uuid = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+          deviceId = `p97_${uuid}`;
+          localStorage.setItem(DEVICE_ID_KEY, deviceId);
+        }
+        await fetch('/.netlify/functions/push-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId, subscription }),
+        });
+      } catch {
+        // push subscription is best-effort
+      }
+    };
+    subscribeForPush();
+  }, [guardianNetwork]);
 
   useEffect(() => {
     const pulseInterval = setInterval(() => setPulse((p) => !p), 2000);
@@ -151,17 +233,21 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
           engine: data.engine || 'CLOUD_UNKNOWN',
         });
 
-        if (hasIncomingAlert && latestAlertId && latestAlertId !== lastIncomingAlertIdRef.current) {
-          lastIncomingAlertIdRef.current = latestAlertId;
-          if (navigator.vibrate) navigator.vibrate([120, 80, 120, 80, 300]);
-
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Projet 97', {
-              body: 'Alerte SOS à proximité (≤ 1 km).',
-            });
-          } else if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission().catch(() => undefined);
+        if (hasIncomingAlert) {
+          const isNewAlert = Boolean(latestAlertId && latestAlertId !== lastIncomingAlertIdRef.current);
+          if (latestAlertId) {
+            lastIncomingAlertIdRef.current = latestAlertId;
           }
+          const now = Date.now();
+          const cooldownReached = now - lastAlertNotificationTimeRef.current >= ALERT_NOTIFICATION_COOLDOWN_MS;
+
+          if (isNewAlert || cooldownReached) {
+            lastAlertNotificationTimeRef.current = now;
+            if (navigator.vibrate) navigator.vibrate([120, 80, 120, 80, 300]);
+            notifyNearbySos();
+          }
+        } else {
+          lastAlertNotificationTimeRef.current = 0;
         }
         if (data.trend) setTrend(data.trend);
         else updateTrend(safeCount);
@@ -174,7 +260,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
     const pollInterval = setInterval(syncPresence, POLL_INTERVAL_MS);
 
     return () => clearInterval(pollInterval);
-  }, [guardianNetwork]);
+  }, [guardianNetwork, language, t.nearbySosDetected]);
 
   return (
     <div className="flex flex-col p-6 pb-40 animate-in fade-in zoom-in-95 duration-700">

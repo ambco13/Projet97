@@ -23,3 +23,14 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+self.addEventListener('push', (event) => {
+  const payload = event.data ? event.data.json() : {};
+  const title = payload.title || 'Projet 97';
+  const options = {
+    body: payload.body || 'Alerte 97',
+    tag: payload.tag || 'p97-nearby-sos',
+    requireInteraction: true,
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});

@@ -39,6 +39,45 @@ const getPool = async () => {
   }
 };
 
+const sendPushToNearbyGuardians = async (db: any, senderDeviceId: string) => {
+  const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@projet97.app';
+  const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || '';
+  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
+  if (!vapidPublicKey || !vapidPrivateKey) return;
+
+  const rows = await db.query(
+    `SELECT device_id, subscription
+     FROM push_subscriptions
+     WHERE device_id <> $1
+       AND last_seen > NOW() - INTERVAL '7 days'`,
+    [senderDeviceId],
+  );
+  if (!rows?.rows?.length) return;
+
+  const webpushModule = await import('web-push');
+  const webpush = (webpushModule as any).default || webpushModule;
+  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+
+  const payload = JSON.stringify({
+    title: 'Projet 97',
+    body: 'Alerte 97 — SOS à proximité (≤ 1 km).',
+    tag: 'p97-nearby-sos',
+  });
+
+  await Promise.allSettled(
+    rows.rows.map(async (row: any) => {
+      try {
+        await webpush.sendNotification(row.subscription, payload);
+      } catch (error: any) {
+        const statusCode = Number(error?.statusCode || 0);
+        if (statusCode === 404 || statusCode === 410) {
+          await db.query(`DELETE FROM push_subscriptions WHERE device_id = $1`, [row.device_id]);
+        }
+      }
+    }),
+  );
+};
+
 export const handler: Handler = async (event) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -116,6 +155,13 @@ export const handler: Handler = async (event) => {
     await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`);
     await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`);
     await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS last_emergency_at TIMESTAMPTZ`);
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        device_id TEXT PRIMARY KEY,
+        subscription JSONB NOT NULL,
+        last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
     await db.query(`
       CREATE TABLE IF NOT EXISTS guardian_alerts (
         id BIGSERIAL PRIMARY KEY,
@@ -198,6 +244,7 @@ export const handler: Handler = async (event) => {
         `,
         [deviceId, lat, lng, radiusKm],
       );
+      await sendPushToNearbyGuardians(db, deviceId);
     }
     if (action === 'resolve') {
       await db.query(
