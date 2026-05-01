@@ -1,14 +1,10 @@
 interface Env {
-  DATABASE_URL?: string;
-  NETLIFY_DATABASE_URL?: string;
-  NETLIFY_DATABASE_URL_UNPOOLED?: string;
+  DB?: D1Database;
 }
 
 const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
-const ACTIVE_WINDOW_SQL = '60 seconds';
+const ACTIVE_WINDOW_SECONDS = 60;
 const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
-
-let poolPromise: Promise<any> | null = null;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,28 +20,6 @@ const toSessionId = (rawDeviceId: string) => {
   return `p97_${hash.toString(16).padStart(8, '0')}`;
 };
 
-const getDatabaseUrl = (env: Env) =>
-  env.DATABASE_URL || env.NETLIFY_DATABASE_URL || env.NETLIFY_DATABASE_URL_UNPOOLED || '';
-
-const getPool = async (env: Env) => {
-  if (poolPromise) return poolPromise;
-
-  const connectionString = getDatabaseUrl(env);
-  if (!connectionString) return null;
-
-  try {
-    poolPromise = (async () => {
-      const pg = await import('pg');
-      const Pool = (pg as any).Pool;
-      return new Pool({ connectionString });
-    })();
-    return poolPromise;
-  } catch {
-    poolPromise = null;
-    return null;
-  }
-};
-
 const registerInMemoryPresence = (deviceId: string, ip: string) => {
   const now = Date.now();
   inMemoryPresence.set(deviceId, { ip, lastSeen: now });
@@ -57,206 +31,146 @@ const registerInMemoryPresence = (deviceId: string, ip: string) => {
   return inMemoryPresence.size;
 };
 
+const setupSchema = async (db: D1Database) => {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS presence (
+      device_id TEXT PRIMARY KEY,
+      ip TEXT,
+      lat REAL,
+      lng REAL,
+      last_emergency_at TEXT,
+      last_seen INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS guardian_alerts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_device_id TEXT NOT NULL,
+      lat REAL NOT NULL,
+      lng REAL NOT NULL,
+      radius_km REAL NOT NULL DEFAULT 1,
+      resolved_at INTEGER,
+      created_at INTEGER NOT NULL
+    );
+  `);
+};
+
 export const onRequestOptions: PagesFunction<Env> = async () =>
-  new Response(null, {
-    status: 204,
-    headers: corsHeaders,
-  });
+  new Response(null, { status: 204, headers: corsHeaders });
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const { request, env } = context;
-
+export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const body = (await request.json().catch(() => ({}))) as {
-      action?: unknown;
-      deviceId?: unknown;
-      lat?: unknown;
-      lng?: unknown;
-      radiusKm?: unknown;
-    };
-
-    const deviceId =
-      typeof body.deviceId === 'string' && body.deviceId.trim().length > 0
-        ? body.deviceId.trim()
-        : 'anonymous_device';
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const deviceId = typeof body.deviceId === 'string' && body.deviceId.trim() ? body.deviceId.trim() : 'anonymous_device';
     const action = body.action === 'alert' ? 'alert' : body.action === 'resolve' ? 'resolve' : 'presence';
     const lat = Number.isFinite(Number(body.lat)) ? Number(body.lat) : null;
     const lng = Number.isFinite(Number(body.lng)) ? Number(body.lng) : null;
     const radiusKm = Number.isFinite(Number(body.radiusKm)) ? Math.max(0.1, Number(body.radiusKm)) : 1;
     const userIP = request.headers.get('cf-connecting-ip') || '127.0.0.1';
+    const now = Date.now();
 
-    const startedAt = Date.now();
-    const db = await getPool(env);
-
-    if (!db) {
+    if (!env.DB) {
       registerInMemoryPresence(deviceId, userIP);
-      return Response.json(
-        {
-          error: 'CLOUD_DATABASE_UNAVAILABLE',
-          detail: 'Presence requires a configured and reachable Postgres database.',
-        },
-        { status: 503, headers: corsHeaders },
-      );
+      return Response.json({
+        error: 'CLOUD_DATABASE_UNAVAILABLE',
+        detail: 'Cloudflare D1 binding "DB" is missing for /api/presence.',
+      }, { status: 503, headers: corsHeaders });
     }
 
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS presence (
-        device_id TEXT PRIMARY KEY,
-        ip TEXT,
-        lat DOUBLE PRECISION,
-        lng DOUBLE PRECISION,
-        last_emergency_at TIMESTAMPTZ,
-        last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`);
-    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`);
-    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS last_emergency_at TIMESTAMPTZ`);
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS guardian_alerts (
-        id BIGSERIAL PRIMARY KEY,
-        sender_device_id TEXT NOT NULL,
-        lat DOUBLE PRECISION NOT NULL,
-        lng DOUBLE PRECISION NOT NULL,
-        radius_km DOUBLE PRECISION NOT NULL DEFAULT 1,
-        resolved_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await db.query(`ALTER TABLE guardian_alerts ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ`);
+    await setupSchema(env.DB);
 
-    await db.query(
-      `
-        INSERT INTO presence (device_id, ip, lat, lng, last_seen)
-        VALUES ($1, $2, $3, $4, NOW())
-        ON CONFLICT (device_id)
-        DO UPDATE SET
-          ip = EXCLUDED.ip,
-          lat = COALESCE(EXCLUDED.lat, presence.lat),
-          lng = COALESCE(EXCLUDED.lng, presence.lng),
-          last_seen = NOW()
-      `,
-      [deviceId, userIP, lat, lng],
-    );
+    await env.DB.prepare(`
+      INSERT INTO presence(device_id, ip, lat, lng, last_seen)
+      VALUES (?1, ?2, ?3, ?4, ?5)
+      ON CONFLICT(device_id) DO UPDATE SET
+        ip=excluded.ip,
+        lat=COALESCE(excluded.lat, presence.lat),
+        lng=COALESCE(excluded.lng, presence.lng),
+        last_seen=excluded.last_seen
+    `).bind(deviceId, userIP, lat, lng, now).run();
 
-    await db.query(`DELETE FROM presence WHERE last_seen <= NOW() - INTERVAL '${ACTIVE_WINDOW_SQL}'`);
+    await env.DB.prepare(`DELETE FROM presence WHERE last_seen <= ?1`).bind(now - ACTIVE_WINDOW_SECONDS * 1000).run();
 
-    const countResult = await db.query(
-      `SELECT COUNT(*)::int AS count FROM presence WHERE last_seen > NOW() - INTERVAL '${ACTIVE_WINDOW_SQL}'`,
-    );
-
-    const finalCount = Number(countResult.rows?.[0]?.count ?? 0);
+    const countRow = await env.DB.prepare(`SELECT COUNT(*) as count FROM presence WHERE last_seen > ?1`)
+      .bind(now - ACTIVE_WINDOW_SECONDS * 1000)
+      .first<{ count: number }>();
+    const finalCount = Number(countRow?.count ?? 0);
 
     let nearbyCount = 0;
     if (action === 'alert' && lat !== null && lng !== null) {
-      await db.query(`UPDATE presence SET last_emergency_at = NOW() WHERE device_id = $1`, [deviceId]);
+      await env.DB.prepare(`UPDATE presence SET last_emergency_at = ?1 WHERE device_id = ?2`)
+        .bind(String(now), deviceId)
+        .run();
 
-      const nearbyResult = await db.query(
-        `
-          SELECT COUNT(*)::int AS count
-          FROM presence
-          WHERE device_id <> $1
-            AND last_seen > NOW() - INTERVAL '${ACTIVE_WINDOW_SQL}'
-            AND lat IS NOT NULL
-            AND lng IS NOT NULL
-            AND (
-              6371 * acos(
-                cos(radians($2)) * cos(radians(lat))
-                * cos(radians(lng) - radians($3))
-                + sin(radians($2)) * sin(radians(lat))
-              )
-            ) <= $4
-        `,
-        [deviceId, lat, lng, radiusKm],
-      );
-      nearbyCount = Number(nearbyResult.rows?.[0]?.count ?? 0);
+      const activeRows = await env.DB.prepare(`
+        SELECT device_id, lat, lng
+        FROM presence
+        WHERE device_id <> ?1 AND last_seen > ?2 AND lat IS NOT NULL AND lng IS NOT NULL
+      `).bind(deviceId, now - ACTIVE_WINDOW_SECONDS * 1000).all<{ device_id: string; lat: number; lng: number }>();
 
-      await db.query(
-        `INSERT INTO guardian_alerts (sender_device_id, lat, lng, radius_km, created_at) VALUES ($1, $2, $3, $4, NOW())`,
-        [deviceId, lat, lng, radiusKm],
-      );
+      nearbyCount = (activeRows.results || []).filter((row) => {
+        const distanceKm = 6371 * Math.acos(
+          Math.cos((lat * Math.PI) / 180) * Math.cos((row.lat * Math.PI) / 180) * Math.cos(((row.lng - lng) * Math.PI) / 180) +
+          Math.sin((lat * Math.PI) / 180) * Math.sin((row.lat * Math.PI) / 180),
+        );
+        return Number.isFinite(distanceKm) && distanceKm <= radiusKm;
+      }).length;
+
+      await env.DB.prepare(`
+        INSERT INTO guardian_alerts(sender_device_id, lat, lng, radius_km, created_at)
+        VALUES (?1, ?2, ?3, ?4, ?5)
+      `).bind(deviceId, lat, lng, radiusKm, now).run();
     }
 
     if (action === 'resolve') {
-      await db.query(
-        `UPDATE guardian_alerts SET resolved_at = NOW() WHERE sender_device_id = $1 AND resolved_at IS NULL`,
-        [deviceId],
-      );
+      await env.DB.prepare(`
+        UPDATE guardian_alerts
+        SET resolved_at = ?1
+        WHERE sender_device_id = ?2 AND resolved_at IS NULL
+      `).bind(now, deviceId).run();
     }
 
-    const incomingAlertsResult =
-      lat !== null && lng !== null
-        ? await db.query(
-            `
-              SELECT id, created_at, lat, lng, sender_device_id
-              FROM guardian_alerts
-              WHERE sender_device_id <> $1
-                AND created_at > NOW() - INTERVAL '90 seconds'
-                AND resolved_at IS NULL
-                AND (
-                  6371 * acos(
-                    cos(radians($2)) * cos(radians(lat))
-                    * cos(radians(lng) - radians($3))
-                    + sin(radians($2)) * sin(radians(lat))
-                  )
-                ) <= radius_km
-              ORDER BY created_at DESC
-              LIMIT 1
-            `,
-            [deviceId, lat, lng],
-          )
-        : await db.query(
-            `
-              SELECT id, created_at, lat, lng, sender_device_id
-              FROM guardian_alerts
-              WHERE sender_device_id <> $1
-                AND created_at > NOW() - INTERVAL '90 seconds'
-                AND resolved_at IS NULL
-              ORDER BY created_at DESC
-              LIMIT 1
-            `,
-            [deviceId],
-          );
+    const alerts = await env.DB.prepare(`
+      SELECT id, created_at, lat, lng, sender_device_id, radius_km
+      FROM guardian_alerts
+      WHERE sender_device_id <> ?1 AND created_at > ?2 AND resolved_at IS NULL
+      ORDER BY created_at DESC
+      LIMIT 5
+    `).bind(deviceId, now - 90_000).all<{ id: number; created_at: number; lat: number; lng: number; sender_device_id: string; radius_km: number }>();
 
-    const latestIncomingAlert = incomingAlertsResult.rows?.[0];
+    const latestIncomingAlert = (alerts.results || []).find((row) => {
+      if (lat === null || lng === null) return true;
+      const distanceKm = 6371 * Math.acos(
+        Math.cos((lat * Math.PI) / 180) * Math.cos((row.lat * Math.PI) / 180) * Math.cos(((row.lng - lng) * Math.PI) / 180) +
+        Math.sin((lat * Math.PI) / 180) * Math.sin((row.lat * Math.PI) / 180),
+      );
+      return Number.isFinite(distanceKm) && distanceKm <= row.radius_km;
+    });
+
     const hasIncomingAlert = Boolean(latestIncomingAlert);
-    const alertPrecision = lat !== null && lng !== null ? 'exact' : 'approximate';
 
-    return Response.json(
-      {
-        count: finalCount,
-        trend: 'stable',
-        engine: 'CLOUDFLARE_POSTGRES',
-        latency: `${Date.now() - startedAt}ms`,
-        nearbyCount,
-        incomingAlerts: hasIncomingAlert ? 1 : 0,
-        latestAlertId: hasIncomingAlert ? String(latestIncomingAlert.id) : null,
-        latestAlertAt: hasIncomingAlert ? latestIncomingAlert.created_at : null,
-        latestAlertLat: hasIncomingAlert ? Number(latestIncomingAlert.lat) : null,
-        latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert.lng) : null,
-        latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert.sender_device_id)) : null,
-        latestAlertPrecision: hasIncomingAlert ? alertPrecision : null,
-        session_id: toSessionId(deviceId),
-        ip_mask: userIP.replace(/\.\d+$/, '.***'),
-      },
-      { headers: corsHeaders },
-    );
+    return Response.json({
+      count: finalCount,
+      trend: 'stable',
+      engine: 'CLOUDFLARE_D1',
+      latency: `${Date.now() - now}ms`,
+      nearbyCount,
+      incomingAlerts: hasIncomingAlert ? 1 : 0,
+      latestAlertId: hasIncomingAlert ? String(latestIncomingAlert!.id) : null,
+      latestAlertAt: hasIncomingAlert ? new Date(latestIncomingAlert!.created_at).toISOString() : null,
+      latestAlertLat: hasIncomingAlert ? Number(latestIncomingAlert!.lat) : null,
+      latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert!.lng) : null,
+      latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert!.sender_device_id)) : null,
+      latestAlertPrecision: hasIncomingAlert ? (lat !== null && lng !== null ? 'exact' : 'approximate') : null,
+      session_id: toSessionId(deviceId),
+      ip_mask: userIP.replace(/\.\d+$/, '.***'),
+    }, { headers: corsHeaders });
   } catch (error) {
-    return Response.json(
-      {
-        error: 'CLOUD_SYNC_ERROR',
-        detail: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500, headers: corsHeaders },
-    );
+    return Response.json({
+      error: 'CLOUD_SYNC_ERROR',
+      detail: error instanceof Error ? error.message : 'Unknown error',
+    }, { status: 500, headers: corsHeaders });
   }
 };
 
 export const onRequest: PagesFunction<Env> = async () =>
-  Response.json(
-    {
-      error: 'METHOD_NOT_ALLOWED',
-      detail: 'Use POST to sync presence.',
-    },
-    { status: 405, headers: corsHeaders },
-  );
+  Response.json({ error: 'METHOD_NOT_ALLOWED', detail: 'Use POST to sync presence.' }, { status: 405, headers: corsHeaders });

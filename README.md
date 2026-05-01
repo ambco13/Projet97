@@ -33,9 +33,9 @@ L'application peut fonctionner sans backend/DB :
 - Fallback legacy conservé: `/.netlify/functions/presence`.
 
 ### 2) Base de données
-- Variable recommandée: `DATABASE_URL`.
-- Compatibilité migration: `NETLIFY_DATABASE_URL` / `NETLIFY_DATABASE_URL_UNPOOLED`.
-- Si la DB n'est pas accessible, l'API renvoie `CLOUD_DATABASE_UNAVAILABLE`.
+- Crée une base **Cloudflare D1**.
+- Dans Pages > Settings > Functions > Bindings, ajoute un binding D1 nommé **`DB`**.
+- Si le binding `DB` est absent, l'API renvoie `CLOUD_DATABASE_UNAVAILABLE`.
 
 ### 3) Domaine personnalisé (pour éviter `*.workers.dev`)
 Dans le dashboard Cloudflare:
