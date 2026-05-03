@@ -1,0 +1,8 @@
+name = "projet97"
+compatibility_date = "2026-05-03"
+
+# Pages Functions D1 binding (set database_id after creating D1 DB)
+[[d1_databases]]
+binding = "DB"
+database_name = "db_projet97"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"

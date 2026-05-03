@@ -172,5 +172,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 };
 
-export const onRequest: PagesFunction<Env> = async () =>
-  Response.json({ error: 'METHOD_NOT_ALLOWED', detail: 'Use POST to sync presence.' }, { status: 405, headers: corsHeaders });
+export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
+  if (request.method === 'GET') {
+    return Response.json(
+      {
+        ok: true,
+        service: 'presence',
+        runtime: 'cloudflare-pages',
+        dbBinding: Boolean(env.DB),
+        hint: env.DB ? 'Use POST to sync presence.' : 'Missing D1 binding named DB in Cloudflare Pages project settings.',
+      },
+      { headers: corsHeaders },
+    );
+  }
+
+  return Response.json({ error: 'METHOD_NOT_ALLOWED', detail: 'Use POST to sync presence.' }, { status: 405, headers: corsHeaders });
+};

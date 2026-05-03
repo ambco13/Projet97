@@ -47,3 +47,38 @@ Dans le dashboard Cloudflare:
 ### 4) URL API externe optionnelle
 Si tu veux forcer une API distante (ex: domaine custom), crée `.env`:
 `VITE_PRESENCE_BASE_URL=https://api.projet97.com`
+
+
+### 5) Si tu venais de Netlify Neon (mis en pause)
+Tu as 2 options simples:
+
+1. **Recommandé (Cloudflare natif)**: migrer vers **Cloudflare D1**.
+   - crée la base D1,
+   - ajoute le binding `DB`,
+   - redéploie (le schéma sera créé automatiquement au premier appel).
+
+2. **Garder Neon**: il faut une API HTTP compatible Workers (pas `pg` TCP classique dans Pages Functions).
+   - Dans ce repo actuel, l'API `/api/presence` est codée pour D1.
+
+Migration minimale des données (si nécessaire):
+- export CSV des tables `presence` et `guardian_alerts` depuis Neon,
+- import dans D1 via dashboard Cloudflare ou `wrangler d1 execute`.
+
+## Checklist exacte pour que ça marche
+Donne-moi ces 4 infos et je te fais la config finale:
+1. ton **nom de domaine** final (ex: `app.projet97.com`),
+2. si tu veux API sur le même domaine ou sous-domaine (ex: `api.projet97.com`),
+3. le **database_id D1** Cloudflare,
+4. confirmation que le binding D1 s'appelle bien `DB`.
+
+Test rapide après déploiement:
+- Ouvre `https://<ton-domaine>/api/presence`.
+- Tu dois voir `{"ok":true,...}` et `dbBinding:true`.
+
+
+### Création DB rapide (CLI)
+```bash
+wrangler d1 create db_projet97
+# copie le database_id retourné puis mets-le dans wrangler.toml
+wrangler d1 execute db_projet97 --file=./migrations/0001_init.sql
+```
