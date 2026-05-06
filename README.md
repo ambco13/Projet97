@@ -26,11 +26,10 @@ L'application peut fonctionner sans backend/DB :
 - le compteur communautaire est calculé localement dans l'app ;
 - aucun paramétrage `DATABASE_URL` n'est nécessaire pour l'usage local.
 
-## Migration Cloudflare (DB + domaine)
+## Setup Cloudflare uniquement (DB + domaine)
 
 ### 1) Endpoint API utilisé
 - Endpoint principal: `/api/presence` (Cloudflare Pages Function).
-- Fallback legacy conservé: `/.netlify/functions/presence`.
 
 ### 2) Base de données
 - Crée une base **Cloudflare D1**.
@@ -49,21 +48,6 @@ Si tu veux forcer une API distante (ex: domaine custom), crée `.env`:
 `VITE_PRESENCE_BASE_URL=https://api.projet97.com`
 
 
-### 5) Si tu venais de Netlify Neon (mis en pause)
-Tu as 2 options simples:
-
-1. **Recommandé (Cloudflare natif)**: migrer vers **Cloudflare D1**.
-   - crée la base D1,
-   - ajoute le binding `DB`,
-   - redéploie (le schéma sera créé automatiquement au premier appel).
-
-2. **Garder Neon**: il faut une API HTTP compatible Workers (pas `pg` TCP classique dans Pages Functions).
-   - Dans ce repo actuel, l'API `/api/presence` est codée pour D1.
-
-Migration minimale des données (si nécessaire):
-- export CSV des tables `presence` et `guardian_alerts` depuis Neon,
-- import dans D1 via dashboard Cloudflare ou `wrangler d1 execute`.
-
 ## Checklist exacte pour que ça marche
 Donne-moi ces 4 infos et je te fais la config finale:
 1. ton **nom de domaine** final (ex: `app.projet97.com`),
@@ -80,13 +64,32 @@ Test rapide après déploiement:
 ```bash
 wrangler d1 create db_projet97
 # copie le database_id retourné puis mets-le dans wrangler.toml
-wrangler d1 execute db_projet97 --file=./migrations/0001_init.sql
+wrangler d1 execute db_projet97 --remote --file=./migrations/0001_init.sql --config=wrangler.toml
 ```
 
 
 ### Déploiement Worker (commande CI)
 ```bash
 npm run build
-npx wrangler versions upload
+npm run deploy:worker
 ```
-> `wrangler.toml` inclut maintenant `main = "src/worker.ts"` et `[assets] directory = "./dist"` pour éviter l'erreur "Missing entry-point".
+> `wrangler.toml` inclut `main = "src/worker.ts"` et `[assets]` avec `not_found_handling = "single-page-application"` pour les routes React SPA.
+
+
+### Si Cloudflare dit "Missing entry-point"
+Utilise une commande explicite (déjà ajoutée dans `package.json`) :
+```bash
+npm run build
+npm run deploy:worker
+```
+Cette commande utilise `wrangler deploy` (recommandé) et lit la config complète de `wrangler.toml`.
+
+### Init D1 (tables)
+```bash
+npm run d1:init
+```
+Puis vérifie:
+```bash
+curl https://<ton-domaine>/api/presence
+```
+Tu dois voir `dbBinding: true`, `schemaReady: true`, et `tables` avec `presence` + `guardian_alerts`.
