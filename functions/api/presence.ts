@@ -9,7 +9,7 @@ const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
 } as const;
 
 const toSessionId = (rawDeviceId: string) => {
@@ -174,13 +174,33 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
 export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   if (request.method === 'GET') {
+    if (!env.DB) {
+      return Response.json(
+        {
+          ok: true,
+          service: 'presence',
+          runtime: 'cloudflare-pages',
+          dbBinding: false,
+          hint: 'Missing D1 binding named DB in Cloudflare Pages project settings.',
+        },
+        { headers: corsHeaders },
+      );
+    }
+
+    await setupSchema(env.DB);
+    const tableRows = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('presence','guardian_alerts') ORDER BY name")
+      .all<{ name: string }>();
+    const tables = (tableRows.results || []).map((row) => row.name);
+
     return Response.json(
       {
         ok: true,
         service: 'presence',
         runtime: 'cloudflare-pages',
-        dbBinding: Boolean(env.DB),
-        hint: env.DB ? 'Use POST to sync presence.' : 'Missing D1 binding named DB in Cloudflare Pages project settings.',
+        dbBinding: true,
+        schemaReady: tables.length === 2,
+        tables,
+        hint: 'Use POST to sync presence.',
       },
       { headers: corsHeaders },
     );
