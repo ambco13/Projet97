@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:worker": "wrangler versions upload src/worker.ts --assets=./dist --config=wrangler.toml",
+    "d1:init": "wrangler d1 execute db_projet97 --file=./migrations/0001_init.sql --config=wrangler.toml"
   },
   "dependencies": {
     "@google/genai": "^1.40.0",
