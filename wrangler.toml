@@ -9,4 +9,4 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "db_projet97"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "9a01506a-bb58-4ebb-942f-4ac45ae58df6"
