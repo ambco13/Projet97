@@ -1,0 +1,12 @@
+name = "projet97"
+main = "src/worker.ts"
+compatibility_date = "2026-05-03"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "db_projet97"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
