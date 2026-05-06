@@ -82,3 +82,11 @@ wrangler d1 create db_projet97
 # copie le database_id retourné puis mets-le dans wrangler.toml
 wrangler d1 execute db_projet97 --file=./migrations/0001_init.sql
 ```
+
+
+### Déploiement Worker (commande CI)
+```bash
+npm run build
+npx wrangler versions upload
+```
+> `wrangler.toml` inclut maintenant `main = "src/worker.ts"` et `[assets] directory = "./dist"` pour éviter l'erreur "Missing entry-point".

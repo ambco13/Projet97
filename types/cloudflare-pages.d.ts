@@ -1,3 +1,7 @@
+interface Fetcher {
+  fetch(request: Request): Promise<Response>;
+}
+
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   first<T = Record<string, unknown>>(): Promise<T | null>;
