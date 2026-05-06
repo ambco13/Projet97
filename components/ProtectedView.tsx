@@ -48,7 +48,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
     latency: 'connecting',
     engine: 'CLOUD_CONNECTING',
   });
-  const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'OFFLINE'>('CONNECTING');
+  const [dbStatus, setDbStatus] = useState<'CONNECTING' | 'LIVE' | 'DEGRADED'>('CONNECTING');
   const [incomingAlertActive, setIncomingAlertActive] = useState(false);
   const [incomingAlertCoords, setIncomingAlertCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [incomingAlertSender, setIncomingAlertSender] = useState<string | null>(null);
@@ -121,7 +121,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
     };
 
     const setCloudUnavailable = (reason: string) => {
-      setDbStatus('OFFLINE');
+      setDbStatus('DEGRADED');
       setGuardianCount(0);
       setTrend('stable');
       setIncomingAlertActive(false);
@@ -332,7 +332,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         {cloudInfo && (
           <div className="flex justify-between items-center px-4 opacity-30 text-white font-mono text-[7px] uppercase tracking-tighter">
             <span>{t.engine}: {cloudInfo.engine}</span>
-            <span>MODE: {dbStatus === 'LIVE' ? 'CLOUD' : 'OFFLINE'}</span>
+            <span>MODE: CLOUD</span>
           </div>
         )}
 
