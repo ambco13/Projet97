@@ -52,7 +52,13 @@ const setupSchema = async (db: D1Database) => {
 const handlePresence = async (request: Request, env: Env): Promise<Response> => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
   if (request.method === 'GET') {
-    return Response.json({ ok: true, service: 'presence', dbBinding: Boolean(env.DB) }, { headers: corsHeaders });
+    if (!env.DB) return Response.json({ ok: true, service: 'presence', dbBinding: false }, { headers: corsHeaders });
+
+    await setupSchema(env.DB);
+    const tableRows = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('presence','guardian_alerts') ORDER BY name")
+      .all<{ name: string }>();
+    const tables = (tableRows.results || []).map((row) => row.name);
+    return Response.json({ ok: true, service: 'presence', dbBinding: true, schemaReady: tables.length === 2, tables }, { headers: corsHeaders });
   }
   if (request.method !== 'POST') return Response.json({ error: 'METHOD_NOT_ALLOWED' }, { status: 405, headers: corsHeaders });
 
