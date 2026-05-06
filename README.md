@@ -89,7 +89,7 @@ wrangler d1 execute db_projet97 --file=./migrations/0001_init.sql --config=wrang
 npm run build
 npm run deploy:worker
 ```
-> `wrangler.toml` inclut maintenant `main = "src/worker.ts"` et `[assets] directory = "./dist"` pour éviter l'erreur "Missing entry-point".
+> `wrangler.toml` inclut `main = "src/worker.ts"` et `[assets]` avec `not_found_handling = "single-page-application"` pour les routes React SPA.
 
 
 ### Si Cloudflare dit "Missing entry-point"
@@ -98,7 +98,7 @@ Utilise une commande explicite (déjà ajoutée dans `package.json`) :
 npm run build
 npm run deploy:worker
 ```
-Cette commande force: `src/worker.ts` + `dist` + `wrangler.toml`, donc Wrangler ne dépend pas de l’auto-détection.
+Cette commande utilise `wrangler deploy` (recommandé) et lit la config complète de `wrangler.toml`.
 
 ### Init D1 (tables)
 ```bash

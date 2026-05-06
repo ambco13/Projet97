@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "deploy:worker": "wrangler versions upload src/worker.ts --assets=./dist --config=wrangler.toml",
+    "deploy:worker": "wrangler deploy --config=wrangler.toml",
     "d1:init": "wrangler d1 execute db_projet97 --file=./migrations/0001_init.sql --config=wrangler.toml"
   },
   "dependencies": {
