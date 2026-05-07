@@ -4,6 +4,7 @@ interface Env {
 
 const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
 const ACTIVE_WINDOW_SECONDS = 60;
+const ALERT_WINDOW_MS = 5 * 60 * 1000;
 const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
 
 const corsHeaders = {
@@ -137,7 +138,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       WHERE sender_device_id <> ?1 AND created_at > ?2 AND resolved_at IS NULL
       ORDER BY created_at DESC
       LIMIT 5
-    `).bind(deviceId, now - 90_000).all<{ id: number; created_at: number; lat: number; lng: number; sender_device_id: string; radius_km: number }>();
+    `).bind(deviceId, now - ALERT_WINDOW_MS).all<{ id: number; created_at: number; lat: number; lng: number; sender_device_id: string; radius_km: number }>();
 
     const latestIncomingAlert = (alerts.results || []).find((row) => {
       if (lat === null || lng === null) return true;
