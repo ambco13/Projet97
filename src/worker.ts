@@ -7,6 +7,15 @@ const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
 const ACTIVE_WINDOW_SECONDS = 60;
 const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
 
+
+const computeDistanceKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+  const cosCentralAngle =
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.cos(((lng2 - lng1) * Math.PI) / 180) +
+    Math.sin((lat1 * Math.PI) / 180) * Math.sin((lat2 * Math.PI) / 180);
+  const normalized = Math.min(1, Math.max(-1, cosCentralAngle));
+  return 6371 * Math.acos(normalized);
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -93,7 +102,7 @@ const handlePresence = async (request: Request, env: Env): Promise<Response> => 
     if (action === 'alert' && lat !== null && lng !== null) {
       const activeRows = await env.DB.prepare(`SELECT lat, lng FROM presence WHERE device_id <> ?1 AND last_seen > ?2 AND lat IS NOT NULL AND lng IS NOT NULL`).bind(deviceId, now - ACTIVE_WINDOW_SECONDS * 1000).all<{ lat: number; lng: number }>();
       nearbyCount = (activeRows.results || []).filter((row) => {
-        const d = 6371 * Math.acos(Math.cos((lat * Math.PI) / 180) * Math.cos((row.lat * Math.PI) / 180) * Math.cos(((row.lng - lng) * Math.PI) / 180) + Math.sin((lat * Math.PI) / 180) * Math.sin((row.lat * Math.PI) / 180));
+        const d = computeDistanceKm(lat, lng, row.lat, row.lng);
         return Number.isFinite(d) && d <= radiusKm;
       }).length;
       await env.DB.prepare(`INSERT INTO guardian_alerts(sender_device_id,lat,lng,radius_km,created_at) VALUES (?1,?2,?3,?4,?5)`).bind(deviceId, lat, lng, radiusKm, now).run();
