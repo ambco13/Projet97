@@ -52,7 +52,13 @@ const setupSchema = async (db: D1Database) => {
 const handlePresence = async (request: Request, env: Env): Promise<Response> => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
   if (request.method === 'GET') {
-    return Response.json({ ok: true, service: 'presence', dbBinding: Boolean(env.DB) }, { headers: corsHeaders });
+    if (!env.DB) return Response.json({ ok: true, service: 'presence', dbBinding: false }, { headers: corsHeaders });
+
+    await setupSchema(env.DB);
+    const tableRows = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('presence','guardian_alerts') ORDER BY name")
+      .all<{ name: string }>();
+    const tables = (tableRows.results || []).map((row) => row.name);
+    return Response.json({ ok: true, service: 'presence', dbBinding: true, schemaReady: tables.length === 2, tables }, { headers: corsHeaders });
   }
   if (request.method !== 'POST') return Response.json({ error: 'METHOD_NOT_ALLOWED' }, { status: 405, headers: corsHeaders });
 
@@ -103,7 +109,8 @@ const handlePresence = async (request: Request, env: Env): Promise<Response> => 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/api/presence') return handlePresence(request, env);
+    if (url.pathname === '/api/presence' || url.pathname === '/api/presence/') return handlePresence(request, env);
+    if (url.pathname.startsWith('/api/')) return Response.json({ error: 'API_ROUTE_NOT_FOUND', path: url.pathname }, { status: 404, headers: corsHeaders });
     return env.ASSETS.fetch(request);
   },
 };
