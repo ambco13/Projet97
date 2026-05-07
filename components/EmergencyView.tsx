@@ -64,7 +64,9 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
       lng: position.lng,
     };
 
-    for (const endpoint of PRESENCE_ENDPOINTS) {
+    let bestNearbyCount: number | null = null;
+
+    await Promise.all(PRESENCE_ENDPOINTS.map(async (endpoint) => {
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -72,17 +74,16 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
           body: JSON.stringify(payload),
         });
 
-        if (!response.ok) continue;
+        if (!response.ok) return;
         const data = await response.json();
-        const count = Number.isFinite(Number(data.nearbyCount)) ? Number(data.nearbyCount) : 0;
-        setNearbyGuardians(Math.max(0, count));
-        return;
+        const count = Number.isFinite(Number(data.nearbyCount)) ? Math.max(0, Number(data.nearbyCount)) : 0;
+        bestNearbyCount = bestNearbyCount === null ? count : Math.max(bestNearbyCount, count);
       } catch {
-        // Try next endpoint
+        // try remaining endpoints
       }
-    }
+    }));
 
-    setNearbyGuardians(0);
+    setNearbyGuardians(bestNearbyCount ?? 0);
   };
 
   useEffect(() => {

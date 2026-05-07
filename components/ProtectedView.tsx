@@ -31,6 +31,7 @@ interface PresenceResponse {
   latestAlertLng?: number | null;
   latestAlertSender?: string | null;
   latestAlertPrecision?: 'exact' | 'approximate' | null;
+  latestAlertIsSelf?: boolean;
 }
 
 const POLL_INTERVAL_MS = 10000;
@@ -58,6 +59,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   const [incomingAlertCoords, setIncomingAlertCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [incomingAlertSender, setIncomingAlertSender] = useState<string | null>(null);
   const [incomingAlertPrecision, setIncomingAlertPrecision] = useState<'exact' | 'approximate' | null>(null);
+  const [incomingAlertIsSelf, setIncomingAlertIsSelf] = useState(false);
   const previousCountRef = useRef(0);
   const lastIncomingAlertIdRef = useRef<string | null>(null);
   const lastAlertNotificationTimeRef = useRef<number>(0);
@@ -133,6 +135,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       setIncomingAlertCoords(null);
       setIncomingAlertSender(null);
       setIncomingAlertPrecision(null);
+      setIncomingAlertIsSelf(false);
       setCloudInfo({ latency: 'error', engine: reason });
     };
 
@@ -204,6 +207,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
           : null);
         setIncomingAlertSender(hasIncomingAlert ? (data.latestAlertSender || null) : null);
         setIncomingAlertPrecision(hasIncomingAlert ? (data.latestAlertPrecision || 'approximate') : null);
+        setIncomingAlertIsSelf(hasIncomingAlert ? Boolean(data.latestAlertIsSelf) : false);
         setCloudInfo({
           latency: data.latency || 'n/a',
           engine: data.engine || 'CLOUD_UNKNOWN',
@@ -320,7 +324,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       <div className="space-y-4">
         {incomingAlertActive && (
           <div className="bg-red-600/20 border border-red-500/40 p-4 rounded-2xl text-red-100 text-xs font-bold tracking-wide space-y-2">
-            <p>⚠️ {t.nearbySosDetected || 'SOS détecté à proximité (rayon 1 km)'}</p>
+            <p>⚠️ {incomingAlertIsSelf ? (t.yourSosBroadcasting || 'Votre SOS est en cours de diffusion (rayon 1 km).') : (t.nearbySosDetected || 'SOS détecté à proximité (rayon 1 km)')}</p>
             {incomingAlertSender && (
               <p className="text-[10px] text-red-200/90">{t.sender || 'Émetteur'}: {incomingAlertSender}</p>
             )}
