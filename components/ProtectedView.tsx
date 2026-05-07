@@ -15,6 +15,11 @@ interface Props {
   translations: any;
 }
 
+interface PresenceErrorResponse {
+  error?: string;
+  detail?: string;
+}
+
 interface PresenceResponse {
   count: number;
   trend?: 'up' | 'down' | 'stable';
@@ -150,6 +155,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
 
       try {
         let response: Response | null = null;
+        let lastFailureReason = 'CLOUD_UNAVAILABLE';
         for (const endpoint of PRESENCE_ENDPOINTS) {
           try {
             const candidate = await fetch(endpoint, {
@@ -168,13 +174,19 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
               response = candidate;
               break;
             }
+
+            const errorPayload = (await candidate.json().catch(() => ({}))) as PresenceErrorResponse;
+            const errorCode = typeof errorPayload.error === 'string' && errorPayload.error.trim()
+              ? errorPayload.error.trim()
+              : `HTTP_${candidate.status}`;
+            lastFailureReason = errorCode;
           } catch {
-            // Continue to next endpoint
+            lastFailureReason = 'NETWORK_UNREACHABLE';
           }
         }
 
         if (!response) {
-          throw new Error('Presence API unavailable');
+          throw new Error(lastFailureReason);
         }
 
         const data = (await response.json()) as PresenceResponse;
@@ -215,8 +227,8 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         }
         if (data.trend) setTrend(data.trend);
         else updateTrend(safeCount);
-      } catch {
-        setCloudUnavailable('CLOUD_UNAVAILABLE');
+      } catch (error) {
+        setCloudUnavailable(error instanceof Error && error.message ? error.message : 'CLOUD_UNAVAILABLE');
       }
     };
 
