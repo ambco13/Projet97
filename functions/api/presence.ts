@@ -7,6 +7,15 @@ const ACTIVE_WINDOW_SECONDS = 60;
 const ALERT_WINDOW_MS = 5 * 60 * 1000;
 const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
 
+
+const computeDistanceKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+  const cosCentralAngle =
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.cos(((lng2 - lng1) * Math.PI) / 180) +
+    Math.sin((lat1 * Math.PI) / 180) * Math.sin((lat2 * Math.PI) / 180);
+  const normalized = Math.min(1, Math.max(-1, cosCentralAngle));
+  return 6371 * Math.acos(normalized);
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -111,10 +120,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       `).bind(deviceId, now - ACTIVE_WINDOW_SECONDS * 1000).all<{ device_id: string; lat: number; lng: number }>();
 
       nearbyCount = (activeRows.results || []).filter((row) => {
-        const distanceKm = 6371 * Math.acos(
-          Math.cos((lat * Math.PI) / 180) * Math.cos((row.lat * Math.PI) / 180) * Math.cos(((row.lng - lng) * Math.PI) / 180) +
-          Math.sin((lat * Math.PI) / 180) * Math.sin((row.lat * Math.PI) / 180),
-        );
+        const distanceKm = computeDistanceKm(lat, lng, row.lat, row.lng);
         return Number.isFinite(distanceKm) && distanceKm <= radiusKm;
       }).length;
 
@@ -142,10 +148,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     const latestIncomingAlert = (alerts.results || []).find((row) => {
       if (lat === null || lng === null) return true;
-      const distanceKm = 6371 * Math.acos(
-        Math.cos((lat * Math.PI) / 180) * Math.cos((row.lat * Math.PI) / 180) * Math.cos(((row.lng - lng) * Math.PI) / 180) +
-        Math.sin((lat * Math.PI) / 180) * Math.sin((row.lat * Math.PI) / 180),
-      );
+      const distanceKm = computeDistanceKm(lat, lng, row.lat, row.lng);
       return Number.isFinite(distanceKm) && distanceKm <= row.radius_km;
     });
 
@@ -164,6 +167,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert!.lng) : null,
       latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert!.sender_device_id)) : null,
       latestAlertPrecision: hasIncomingAlert ? (lat !== null && lng !== null ? 'exact' : 'approximate') : null,
+      latestAlertIsSelf: false,
       session_id: toSessionId(deviceId),
       ip_mask: userIP.replace(/\.\d+$/, '.***'),
     }, { headers: corsHeaders });
