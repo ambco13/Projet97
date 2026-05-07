@@ -32,7 +32,7 @@ const registerInMemoryPresence = (deviceId: string, ip: string) => {
 };
 
 const setupSchema = async (db: D1Database) => {
-  await db.exec(`
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS presence (
       device_id TEXT PRIMARY KEY,
       ip TEXT,
@@ -40,8 +40,10 @@ const setupSchema = async (db: D1Database) => {
       lng REAL,
       last_emergency_at TEXT,
       last_seen INTEGER NOT NULL
-    );
+    )
+  `).run();
 
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS guardian_alerts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       sender_device_id TEXT NOT NULL,
@@ -50,8 +52,8 @@ const setupSchema = async (db: D1Database) => {
       radius_km REAL NOT NULL DEFAULT 1,
       resolved_at INTEGER,
       created_at INTEGER NOT NULL
-    );
-  `);
+    )
+  `).run();
 };
 
 export const onRequestOptions: PagesFunction<Env> = async () =>
