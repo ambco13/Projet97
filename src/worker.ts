@@ -5,6 +5,7 @@ interface Env {
 
 const PRESENCE_WINDOW_MS = 5 * 60 * 1000;
 const ACTIVE_WINDOW_SECONDS = 60;
+const ALERT_WINDOW_MS = 5 * 60 * 1000;
 const inMemoryPresence = new Map<string, { ip: string; lastSeen: number }>();
 
 
@@ -100,6 +101,7 @@ const handlePresence = async (request: Request, env: Env): Promise<Response> => 
 
     let nearbyCount = 0;
     if (action === 'alert' && lat !== null && lng !== null) {
+      await env.DB.prepare(`UPDATE presence SET last_emergency_at = ?1 WHERE device_id = ?2`).bind(String(now), deviceId).run();
       const activeRows = await env.DB.prepare(`SELECT lat, lng FROM presence WHERE device_id <> ?1 AND last_seen > ?2 AND lat IS NOT NULL AND lng IS NOT NULL`).bind(deviceId, now - ACTIVE_WINDOW_SECONDS * 1000).all<{ lat: number; lng: number }>();
       nearbyCount = (activeRows.results || []).filter((row) => {
         const d = computeDistanceKm(lat, lng, row.lat, row.lng);
@@ -112,7 +114,39 @@ const handlePresence = async (request: Request, env: Env): Promise<Response> => 
       await env.DB.prepare(`UPDATE guardian_alerts SET resolved_at=?1 WHERE sender_device_id=?2 AND resolved_at IS NULL`).bind(now, deviceId).run();
     }
 
-    return Response.json({ count, trend: 'stable', engine: 'CLOUDFLARE_D1', nearbyCount, session_id: toSessionId(deviceId), ip_mask: userIP.replace(/\.\d+$/, '.***') }, { headers: corsHeaders });
+    const alerts = await env.DB.prepare(`
+      SELECT id, created_at, lat, lng, sender_device_id, radius_km
+      FROM guardian_alerts
+      WHERE created_at > ?1 AND resolved_at IS NULL
+      ORDER BY created_at DESC
+      LIMIT 5
+    `).bind(now - ALERT_WINDOW_MS).all<{ id: number; created_at: number; lat: number; lng: number; sender_device_id: string; radius_km: number }>();
+
+    const latestIncomingAlert = (alerts.results || []).find((row) => {
+      if (lat === null || lng === null) return true;
+      const distanceKm = computeDistanceKm(lat, lng, row.lat, row.lng);
+      return Number.isFinite(distanceKm) && distanceKm <= row.radius_km;
+    });
+
+    const hasIncomingAlert = Boolean(latestIncomingAlert);
+
+    return Response.json({
+      count,
+      trend: 'stable',
+      engine: 'CLOUDFLARE_D1',
+      latency: `${Date.now() - now}ms`,
+      nearbyCount,
+      incomingAlerts: hasIncomingAlert ? 1 : 0,
+      latestAlertId: hasIncomingAlert ? String(latestIncomingAlert!.id) : null,
+      latestAlertAt: hasIncomingAlert ? new Date(latestIncomingAlert!.created_at).toISOString() : null,
+      latestAlertLat: hasIncomingAlert ? Number(latestIncomingAlert!.lat) : null,
+      latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert!.lng) : null,
+      latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert!.sender_device_id)) : null,
+      latestAlertPrecision: hasIncomingAlert ? (lat !== null && lng !== null ? 'exact' : 'approximate') : null,
+      latestAlertIsSelf: hasIncomingAlert ? String(latestIncomingAlert!.sender_device_id) === deviceId : false,
+      session_id: toSessionId(deviceId),
+      ip_mask: userIP.replace(/\.\d+$/, '.***'),
+    }, { headers: corsHeaders });
   } catch (error) {
     return Response.json({ error: 'CLOUD_SYNC_ERROR', detail: error instanceof Error ? error.message : 'Unknown error' }, { status: 500, headers: corsHeaders });
   }
