@@ -141,10 +141,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const alerts = await env.DB.prepare(`
       SELECT id, created_at, lat, lng, sender_device_id, radius_km
       FROM guardian_alerts
-      WHERE sender_device_id <> ?1 AND created_at > ?2 AND resolved_at IS NULL
+      WHERE created_at > ?1 AND resolved_at IS NULL
       ORDER BY created_at DESC
       LIMIT 5
-    `).bind(deviceId, now - ALERT_WINDOW_MS).all<{ id: number; created_at: number; lat: number; lng: number; sender_device_id: string; radius_km: number }>();
+    `).bind(now - ALERT_WINDOW_MS).all<{ id: number; created_at: number; lat: number; lng: number; sender_device_id: string; radius_km: number }>();
 
     const latestIncomingAlert = (alerts.results || []).find((row) => {
       if (lat === null || lng === null) return true;
