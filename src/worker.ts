@@ -117,10 +117,10 @@ const handlePresence = async (request: Request, env: Env): Promise<Response> => 
     const alerts = await env.DB.prepare(`
       SELECT id, created_at, lat, lng, sender_device_id, radius_km
       FROM guardian_alerts
-      WHERE created_at > ?1 AND resolved_at IS NULL
+      WHERE sender_device_id <> ?1 AND created_at > ?2 AND resolved_at IS NULL
       ORDER BY created_at DESC
       LIMIT 5
-    `).bind(now - ALERT_WINDOW_MS).all<{ id: number; created_at: number; lat: number; lng: number; sender_device_id: string; radius_km: number }>();
+    `).bind(deviceId, now - ALERT_WINDOW_MS).all<{ id: number; created_at: number; lat: number; lng: number; sender_device_id: string; radius_km: number }>();
 
     const latestIncomingAlert = (alerts.results || []).find((row) => {
       if (lat === null || lng === null) return true;
@@ -143,7 +143,7 @@ const handlePresence = async (request: Request, env: Env): Promise<Response> => 
       latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert!.lng) : null,
       latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert!.sender_device_id)) : null,
       latestAlertPrecision: hasIncomingAlert ? (lat !== null && lng !== null ? 'exact' : 'approximate') : null,
-      latestAlertIsSelf: hasIncomingAlert ? String(latestIncomingAlert!.sender_device_id) === deviceId : false,
+      latestAlertIsSelf: false,
       session_id: toSessionId(deviceId),
       ip_mask: userIP.replace(/\.\d+$/, '.***'),
     }, { headers: corsHeaders });

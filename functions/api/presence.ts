@@ -167,7 +167,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert!.lng) : null,
       latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert!.sender_device_id)) : null,
       latestAlertPrecision: hasIncomingAlert ? (lat !== null && lng !== null ? 'exact' : 'approximate') : null,
-      latestAlertIsSelf: hasIncomingAlert ? String(latestIncomingAlert!.sender_device_id) === deviceId : false,
+      latestAlertIsSelf: false,
       session_id: toSessionId(deviceId),
       ip_mask: userIP.replace(/\.\d+$/, '.***'),
     }, { headers: corsHeaders });
