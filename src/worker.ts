@@ -109,7 +109,8 @@ const handlePresence = async (request: Request, env: Env): Promise<Response> => 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/api/presence') return handlePresence(request, env);
+    if (url.pathname === '/api/presence' || url.pathname === '/api/presence/') return handlePresence(request, env);
+    if (url.pathname.startsWith('/api/')) return Response.json({ error: 'API_ROUTE_NOT_FOUND', path: url.pathname }, { status: 404, headers: corsHeaders });
     return env.ASSETS.fetch(request);
   },
 };
