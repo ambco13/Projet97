@@ -19,7 +19,6 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
   const voiceTimerRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const autoOpenedRef = useRef(false);
-  const nearbyAlertSentRef = useRef(false);
 
   const getOrCreateDeviceId = () => {
     const key = 'p97_device_id';
@@ -94,10 +93,13 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
     sendSMSFallback(message);
   }, [coords, contacts.length, t.sosActive]);
 
+
   useEffect(() => {
-    if (!coords || nearbyAlertSentRef.current) return;
-    nearbyAlertSentRef.current = true;
+    if (!coords) return;
+
     sendNearbyAlert(coords);
+    const interval = window.setInterval(() => sendNearbyAlert(coords), 20000);
+    return () => window.clearInterval(interval);
   }, [coords]);
 
   useEffect(() => {
