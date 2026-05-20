@@ -23,6 +23,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
 } as const;
 
+type MessagePlatform = 'android' | 'ios' | 'unknown';
+
 const toSessionId = (rawDeviceId: string) => {
   let hash = 0;
   for (let i = 0; i < rawDeviceId.length; i += 1) hash = (hash * 31 + rawDeviceId.charCodeAt(i)) >>> 0;
@@ -60,6 +62,66 @@ const setupSchema = async (db: D1Database) => {
       created_at INTEGER NOT NULL
     )
   `).run();
+};
+
+const normalizePlatform = (rawPlatform: unknown): MessagePlatform => {
+  if (typeof rawPlatform !== 'string') return 'unknown';
+  const normalized = rawPlatform.trim().toLowerCase();
+  if (normalized === 'android') return 'android';
+  if (normalized === 'ios' || normalized === 'apple' || normalized === 'iphone') return 'ios';
+  return 'unknown';
+};
+
+const sanitizePhone = (rawPhone: unknown): string | null => {
+  if (typeof rawPhone !== 'string') return null;
+  const compact = rawPhone.replace(/\s+/g, '');
+  if (!compact) return null;
+  if (!/^\+?[0-9]{6,18}$/.test(compact)) return null;
+  return compact;
+};
+
+const handleMessageCompose = async (request: Request): Promise<Response> => {
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
+  if (request.method !== 'POST') return Response.json({ error: 'METHOD_NOT_ALLOWED' }, { status: 405, headers: corsHeaders });
+
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const platform = normalizePlatform(body.platform);
+  const phone = sanitizePhone(body.phone);
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+
+  if (!phone) return Response.json({ error: 'INVALID_PHONE' }, { status: 400, headers: corsHeaders });
+  if (!text) return Response.json({ error: 'MISSING_MESSAGE_TEXT' }, { status: 400, headers: corsHeaders });
+
+  const encodedText = encodeURIComponent(text);
+  const iosUrl = `sms:${phone}&body=${encodedText}`;
+  const androidUrl = `sms:${phone}?body=${encodedText}`;
+
+  const responseByPlatform =
+    platform === 'android'
+      ? {
+          channel: 'carrier_sms',
+          platform: 'android',
+          composeUrl: androidUrl,
+          autoSendSupported: true,
+          note: 'Android peut envoyer par la SIM sans ouvrir une application SMS alternative si permissions SMS accordées.',
+        }
+      : {
+          channel: 'apple_messages',
+          platform: 'ios',
+          composeUrl: iosUrl,
+          autoSendSupported: false,
+          note: "iOS ouvre l'app Messages Apple et nécessite une confirmation utilisateur.",
+        };
+
+  return Response.json(
+    {
+      ok: true,
+      phone,
+      messageLength: text.length,
+      ...responseByPlatform,
+    },
+    { headers: corsHeaders },
+  );
 };
 
 const handlePresence = async (request: Request, env: Env): Promise<Response> => {
@@ -156,6 +218,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/api/presence' || url.pathname === '/api/presence/') return handlePresence(request, env);
+    if (url.pathname === '/api/messages/compose' || url.pathname === '/api/messages/compose/') return handleMessageCompose(request);
     if (url.pathname.startsWith('/api/')) return Response.json({ error: 'API_ROUTE_NOT_FOUND', path: url.pathname }, { status: 404, headers: corsHeaders });
     return env.ASSETS.fetch(request);
   },
