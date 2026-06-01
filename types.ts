@@ -17,6 +17,7 @@ export interface EmergencyLog {
 export type AppState = 'SETUP' | 'PROTECTED' | 'EMERGENCY' | 'DEACTIVATING';
 
 export interface AppConfig {
+  ownerName: string;
   pin: string;
   contacts: Contact[];
   guardianNetwork: boolean;
