@@ -69,7 +69,11 @@ export const translations: Record<string, any> = {
     disableProtection: "Désactiver la protection",
     enableProtection: "Activer la protection",
     inactive: "Inactif",
-    sleeping: "EN PAUSE"
+    sleeping: "EN PAUSE",
+    identityLabel: "Identité",
+    identityPlaceholder: "Nom de la victime",
+    alertPrefix: "Alerte reçue de",
+    defaultSender: "votre contact"
   },
   en: {
     appTitle: "Project 97",
@@ -133,14 +137,18 @@ export const translations: Record<string, any> = {
     disableProtection: "Disable protection",
     enableProtection: "Enable protection",
     inactive: "Inactive",
-    sleeping: "PAUSED"
+    sleeping: "PAUSED",
+    identityLabel: "Identity",
+    identityPlaceholder: "Victim name",
+    alertPrefix: "Alert received from",
+    defaultSender: "your contact"
   },
   he: {
     appTitle: "פרויקט 97",
     guardianProtocol: "פרוטוקול Guardian",
     active: "פעיל",
     protectionActive: "הגנה פעילה",
-    voiceInstruction: "אמור \"Alert 97\" (בשפה שלך) או נער את המכשיר.",
+    voiceInstruction: "אמור \"התראה 97\" או \"אזעקה 97\", או נער את המכשיר.",
     manualSos: "הפעל SOS ידנית",
     listening: "האזנה חיה",
     microphone: "מיקרופון",
@@ -197,14 +205,18 @@ export const translations: Record<string, any> = {
     disableProtection: "כבה הגנה",
     enableProtection: "הפעל הגנה",
     inactive: "לא פעיל",
-    sleeping: "מושהה"
+    sleeping: "מושהה",
+    identityLabel: "זהות",
+    identityPlaceholder: "שם הקורבן",
+    alertPrefix: "התקבלה התראה מ",
+    defaultSender: "איש הקשר שלך"
   },
   ar: {
     appTitle: "مشروع 97",
     guardianProtocol: "بروتوكول Guardian",
     active: "نشط",
     protectionActive: "الحماية مفعلة",
-    voiceInstruction: "قل \"Alert 97\" (بلغتك) أو قم بهز جهازك.",
+    voiceInstruction: "قل \"إنذار 97\" أو قم بهز جهازك.",
     manualSos: "تشغيل SOS يدويًا",
     listening: "استماع مباشر",
     microphone: "الميكروفون",
@@ -261,6 +273,10 @@ export const translations: Record<string, any> = {
     disableProtection: "تعطيل الحماية",
     enableProtection: "تفعيل الحماية",
     inactive: "غير نشط",
-    sleeping: "متوقف مؤقتًا"
+    sleeping: "متوقف مؤقتًا",
+    identityLabel: "الهوية",
+    identityPlaceholder: "اسم الضحية",
+    alertPrefix: "تم استلام تنبيه من",
+    defaultSender: "جهة الاتصال الخاصة بك"
   }
 };
