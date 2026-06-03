@@ -67,6 +67,8 @@ const normalizeVoiceTranscript = (value: string) => value
   .replace(/ة/g, 'ه')
   .replace(/[’'`]/g, ' ')
   .replace(/[^\p{L}\p{N}]+/gu, ' ')
+  .replace(/(\p{L})(\p{N})/gu, '$1 $2')
+  .replace(/(\p{N})(\p{L})/gu, '$1 $2')
   .replace(/\s+/g, ' ')
   .trim();
 
