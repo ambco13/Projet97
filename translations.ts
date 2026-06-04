@@ -39,6 +39,9 @@ export const translations: Record<string, any> = {
     language: "Langue",
     pinCode: "Code PIN",
     emergencyContacts: "Contacts d'Urgence",
+    contactNamePlaceholder: "Nom",
+    contactPhonePlaceholder: "Mobile (+33...)",
+    contactDeliveryHint: "Ajoutez le numéro mobile de la personne à prévenir, idéalement avec l’indicatif pays (+33, +972...). En SOS, l’app prépare un SMS vers tous les numéros enregistrés.",
     add: "Ajouter",
     activateProtection: "ACTIVER LA PROTECTION",
     saveChanges: "Enregistrer les modifications",
@@ -69,7 +72,11 @@ export const translations: Record<string, any> = {
     disableProtection: "Désactiver la protection",
     enableProtection: "Activer la protection",
     inactive: "Inactif",
-    sleeping: "EN PAUSE"
+    sleeping: "EN PAUSE",
+    identityLabel: "Identité",
+    identityPlaceholder: "Nom de la victime",
+    alertPrefix: "Alerte reçue de",
+    defaultSender: "votre contact"
   },
   en: {
     appTitle: "Project 97",
@@ -103,6 +110,9 @@ export const translations: Record<string, any> = {
     language: "Language",
     pinCode: "PIN Code",
     emergencyContacts: "Emergency Contacts",
+    contactNamePlaceholder: "Name",
+    contactPhonePlaceholder: "Mobile (+1...)",
+    contactDeliveryHint: "Add the mobile number of the person to notify, ideally with the country code (+1, +33...). During SOS, the app prepares an SMS to every saved number.",
     add: "Add",
     activateProtection: "ACTIVATE PROTECTION",
     saveChanges: "Save Changes",
@@ -133,14 +143,18 @@ export const translations: Record<string, any> = {
     disableProtection: "Disable protection",
     enableProtection: "Enable protection",
     inactive: "Inactive",
-    sleeping: "PAUSED"
+    sleeping: "PAUSED",
+    identityLabel: "Identity",
+    identityPlaceholder: "Victim name",
+    alertPrefix: "Alert received from",
+    defaultSender: "your contact"
   },
   he: {
     appTitle: "פרויקט 97",
     guardianProtocol: "פרוטוקול Guardian",
     active: "פעיל",
     protectionActive: "הגנה פעילה",
-    voiceInstruction: "אמור \"Alert 97\" (בשפה שלך) או נער את המכשיר.",
+    voiceInstruction: "אמור \"התראה 97\" או \"אזעקה 97\", או נער את המכשיר.",
     manualSos: "הפעל SOS ידנית",
     listening: "האזנה חיה",
     microphone: "מיקרופון",
@@ -167,6 +181,9 @@ export const translations: Record<string, any> = {
     language: "שפה",
     pinCode: "קוד PIN",
     emergencyContacts: "אנשי קשר לשעת חירום",
+    contactNamePlaceholder: "שם",
+    contactPhonePlaceholder: "נייד (+972...)",
+    contactDeliveryHint: "הוסף את מספר הנייד של האדם שיש להתריע לו, עדיף עם קידומת מדינה (+972, +33...). בזמן SOS האפליקציה מכינה SMS לכל המספרים השמורים.",
     add: "הוסף",
     activateProtection: "הפעל הגנה",
     saveChanges: "שמור שינויים",
@@ -197,14 +214,18 @@ export const translations: Record<string, any> = {
     disableProtection: "כבה הגנה",
     enableProtection: "הפעל הגנה",
     inactive: "לא פעיל",
-    sleeping: "מושהה"
+    sleeping: "מושהה",
+    identityLabel: "זהות",
+    identityPlaceholder: "שם הקורבן",
+    alertPrefix: "התקבלה התראה מ",
+    defaultSender: "איש הקשר שלך"
   },
   ar: {
     appTitle: "مشروع 97",
     guardianProtocol: "بروتوكول Guardian",
     active: "نشط",
     protectionActive: "الحماية مفعلة",
-    voiceInstruction: "قل \"Alert 97\" (بلغتك) أو قم بهز جهازك.",
+    voiceInstruction: "قل \"إنذار 97\" أو قم بهز جهازك.",
     manualSos: "تشغيل SOS يدويًا",
     listening: "استماع مباشر",
     microphone: "الميكروفون",
@@ -231,6 +252,9 @@ export const translations: Record<string, any> = {
     language: "اللغة",
     pinCode: "رمز PIN",
     emergencyContacts: "جهات اتصال الطوارئ",
+    contactNamePlaceholder: "الاسم",
+    contactPhonePlaceholder: "الجوال (+966...)",
+    contactDeliveryHint: "أضف رقم جوال الشخص الذي يجب تنبيهه، ويفضل مع رمز الدولة (+966، +33...). عند SOS يجهز التطبيق رسالة SMS لكل الأرقام المحفوظة.",
     add: "إضافة",
     activateProtection: "تفعيل الحماية",
     saveChanges: "حفظ التغييرات",
@@ -261,6 +285,10 @@ export const translations: Record<string, any> = {
     disableProtection: "تعطيل الحماية",
     enableProtection: "تفعيل الحماية",
     inactive: "غير نشط",
-    sleeping: "متوقف مؤقتًا"
+    sleeping: "متوقف مؤقتًا",
+    identityLabel: "الهوية",
+    identityPlaceholder: "اسم الضحية",
+    alertPrefix: "تم استلام تنبيه من",
+    defaultSender: "جهة الاتصال الخاصة بك"
   }
 };

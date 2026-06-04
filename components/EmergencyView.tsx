@@ -6,13 +6,14 @@ import { PRESENCE_ENDPOINTS } from '../apiEndpoints';
 import MapView from './MapView';
 
 interface Props {
+  ownerName: string;
   contacts: Contact[];
   language: string;
   onDeactivate: () => void;
   translations: any;
 }
 
-const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, translations: t }) => {
+const EmergencyView: React.FC<Props> = ({ ownerName, contacts, language, onDeactivate, translations: t }) => {
   const [seconds, setSeconds] = useState(0);
   const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
   const [nearbyGuardians, setNearbyGuardians] = useState<number | null>(null);
@@ -43,7 +44,8 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
   const shareLocation = async () => {
     if (!coords) return;
     const url = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
-    const message = `${t.sosActive}! Location: ${url}`;
+    const sender = ownerName?.trim() || t.defaultSender;
+    const message = `${t.alertPrefix} ${sender}. ${t.sosActive}! Location: ${url}`;
     sendSMSFallback(message);
   };
 
@@ -90,9 +92,10 @@ const EmergencyView: React.FC<Props> = ({ contacts, language, onDeactivate, tran
     if (!coords || autoOpenedRef.current || contacts.length === 0) return;
     autoOpenedRef.current = true;
     const url = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
-    const message = `${t.sosActive}! Location: ${url}`;
+    const sender = ownerName?.trim() || t.defaultSender;
+    const message = `${t.alertPrefix} ${sender}. ${t.sosActive}! Location: ${url}`;
     sendSMSFallback(message);
-  }, [coords, contacts.length, t.sosActive]);
+  }, [coords, contacts.length, ownerName, t.alertPrefix, t.defaultSender, t.sosActive]);
 
 
   useEffect(() => {

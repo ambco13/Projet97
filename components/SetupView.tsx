@@ -5,15 +5,17 @@ import { Contact, AppConfig } from '../types';
 import { languages } from '../translations';
 
 interface Props {
-  onComplete: (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => void;
+  onComplete: (ownerName: string, contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => void;
+  onLanguageChange?: (language: string) => void;
   onCancel?: () => void;
   initialConfig?: AppConfig;
   hideHeader?: boolean;
   translations: any;
 }
 
-const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideHeader = false, translations: t }) => {
+const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, initialConfig, hideHeader = false, translations: t }) => {
   const [contacts, setContacts] = useState<Contact[]>(initialConfig?.contacts || []);
+  const [ownerName, setOwnerName] = useState(initialConfig?.ownerName || '');
   const [pin, setPin] = useState(initialConfig?.pin || '');
   const [guardianNetwork, setGuardianNetwork] = useState(initialConfig?.guardianNetwork ?? true);
   const [language, setLanguage] = useState<string>(initialConfig?.language || 'fr');
@@ -57,14 +59,21 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
   };
 
   const addContact = () => {
-    if (newName && newPhone) {
-      setContacts([...contacts, { id: Date.now().toString(), name: newName, phone: newPhone, role: 'Confiance' }]);
+    const normalizedPhone = newPhone.trim().replace(/(?!^)\+/g, '').replace(/[^\d+]/g, '');
+    if (newName.trim() && normalizedPhone) {
+      setContacts([...contacts, { id: Date.now().toString(), name: newName.trim(), phone: normalizedPhone, role: 'Confiance' }]);
       setNewName('');
       setNewPhone('');
     }
   };
 
-  const isReady = contacts.length > 0 && pin.length === 4 && geoState === 'SUCCESS' && micState === 'SUCCESS';
+  const selectLanguage = (code: string) => {
+    setLanguage(code);
+    onLanguageChange?.(code);
+    setShowLangMenu(false);
+  };
+
+  const isReady = ownerName.trim().length > 0 && contacts.length > 0 && pin.length === 4 && geoState === 'SUCCESS' && micState === 'SUCCESS';
 
   return (
     <div className="p-8 pb-32 animate-in fade-in slide-in-from-bottom-6 duration-700 relative min-h-full">
@@ -85,10 +94,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
             {Object.entries(languages).map(([code, meta]) => (
               <button
                 key={code}
-                onClick={() => {
-                  setLanguage(code);
-                  setShowLangMenu(false);
-                }}
+                onClick={() => selectLanguage(code)}
                 className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all mb-1 last:mb-0 ${
                   language === code 
                     ? 'bg-red-600/20 text-red-500 border border-red-500/20 shadow-inner' 
@@ -187,6 +193,11 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
         </section>
 
         <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
+          <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.identityLabel}</h2>
+          <input type="text" placeholder={t.identityPlaceholder} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="w-full bg-neutral-950 border border-white/5 rounded-2xl p-4 text-sm text-white" />
+        </section>
+
+        <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.emergencyContacts}</h2>
           <div className="space-y-3 mb-6">
             {contacts.map(c => (
@@ -201,14 +212,15 @@ const SetupView: React.FC<Props> = ({ onComplete, onCancel, initialConfig, hideH
           </div>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="Nom" value={newName} onChange={(e) => setNewName(e.target.value)} className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm text-white" />
-              <input type="tel" placeholder="Mobile" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm text-white" />
+              <input type="text" placeholder={t.contactNamePlaceholder} value={newName} onChange={(e) => setNewName(e.target.value)} className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm text-white" />
+              <input type="tel" placeholder={t.contactPhonePlaceholder} value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm text-white" />
             </div>
+            <p className="text-[10px] leading-relaxed text-neutral-500 font-semibold">{t.contactDeliveryHint}</p>
             <button onClick={addContact} className="w-full bg-white/5 border border-white/10 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest">{t.add}</button>
           </div>
         </section>
 
-        <button disabled={!isReady} onClick={() => onComplete(contacts, pin, guardianNetwork, language)} className="w-full bg-red-600 text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
+        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), contacts, pin, guardianNetwork, language)} className="w-full bg-red-600 text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
           {initialConfig?.pin ? t.saveChanges : t.activateProtection}
         </button>
       </div>

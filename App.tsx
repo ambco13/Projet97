@@ -19,23 +19,80 @@ const GEO_OPTIONS = {
 const SHAKE_THRESHOLD = 28; // Secouement volontaire (très intense)
 const BACKGROUND_SHAKE_THRESHOLD = 40; // Hors focus: secouement hyper intense uniquement
 const TAB_ORDER: Array<'PROTECTED' | 'HISTORY' | 'SETUP'> = ['PROTECTED', 'HISTORY', 'SETUP'];
-const VOICE_TRIGGER_PATTERNS = [
-  /\balert[\s-]?97\b/,
-  /\balerte[\s-]?97\b/,
-  /\balerta[\s-]?97\b/,
-  /\balarma[\s-]?97\b/,
-  /\bтревога[\s-]?97\b/,
-  /\bإنذار[\s-]?97\b/,
+const VOICE_TRIGGER_COMMANDS = [
+  'alert',
+  'alerte',
+  'alerta',
+  'alarma',
+  'тревога',
+  'انذار',
+  'نجدة',
+  'התראה',
+  'התרעה',
+  'אזעקה',
+  'אלרט',
 ];
+
+const VOICE_TRIGGER_NUMBERS = [
+  '97',
+  '9 7',
+  'nine seven',
+  'ninety seven',
+  'neuf sept',
+  'quatre vingt dix sept',
+  'quatre vingts dix sept',
+  'תשעים ושבע',
+  'תשעים ושבעה',
+  'תשעים שבע',
+  'תשעים שבעה',
+  'תשע שבע',
+  'سبعة وتسعون',
+  'سبعه وتسعون',
+  'سبعة و تسعون',
+  'سبعه و تسعون',
+  'سبعة تسعون',
+  'سبعه تسعون',
+  'تسعة سبعة',
+  'تسعه سبعه',
+];
+
+const normalizeVoiceTranscript = (value: string) => value
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[\u0591-\u05c7]/g, '')
+  .replace(/[\u064b-\u065f\u0670\u0640]/g, '')
+  .replace(/[إأآٱ]/g, 'ا')
+  .replace(/ى/g, 'ي')
+  .replace(/ة/g, 'ه')
+  .replace(/[’'`]/g, ' ')
+  .replace(/[^\p{L}\p{N}]+/gu, ' ')
+  .replace(/(\p{L})(\p{N})/gu, '$1 $2')
+  .replace(/(\p{N})(\p{L})/gu, '$1 $2')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const includesVoiceToken = (transcript: string, token: string) => {
+  const normalizedToken = normalizeVoiceTranscript(token);
+  return new RegExp(`(^|\\s)${normalizedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`, 'u').test(transcript);
+};
+
+const shouldTriggerVoiceCommand = (transcript: string) => {
+  const normalizedTranscript = normalizeVoiceTranscript(transcript);
+  const hasCommand = VOICE_TRIGGER_COMMANDS.some((command) => includesVoiceToken(normalizedTranscript, command));
+  const hasProjectNumber = VOICE_TRIGGER_NUMBERS.some((number) => includesVoiceToken(normalizedTranscript, number));
+  return hasCommand && hasProjectNumber;
+};
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>('SETUP');
   const stateRef = useRef<AppState>('SETUP');
   const [config, setConfig] = useState<AppConfig>(() => {
     const saved = localStorage.getItem('p97_config');
-    if (!saved) return { pin: '', contacts: [], guardianNetwork: true, language: 'fr', protectionEnabled: true };
+    if (!saved) return { ownerName: '', pin: '', contacts: [], guardianNetwork: true, language: 'fr', protectionEnabled: true };
     const parsed = JSON.parse(saved);
     return {
+      ownerName: parsed.ownerName || '',
       ...parsed,
       protectionEnabled: parsed.protectionEnabled !== false,
     };
@@ -187,8 +244,8 @@ const App: React.FC = () => {
 
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event: any) => {
-        const result = event.results[event.results.length - 1][0].transcript.toLowerCase();
-        const shouldTrigger = VOICE_TRIGGER_PATTERNS.some((pattern) => pattern.test(result));
+        const result = event.results[event.results.length - 1][0].transcript;
+        const shouldTrigger = shouldTriggerVoiceCommand(result);
         if (shouldTrigger) {
           triggerEmergency('VOICE COMMAND');
         }
@@ -284,7 +341,7 @@ const App: React.FC = () => {
     navigateBySwipe(deltaX < 0 ? 'left' : 'right');
   }, [navigateBySwipe]);
 
-  const handleFinishSetup = (contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => {
+  const handleFinishSetup = (ownerName: string, contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => {
     // Demande de permission pour les capteurs de mouvement (iOS requis)
     if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
       (DeviceMotionEvent as any).requestPermission()
@@ -296,7 +353,7 @@ const App: React.FC = () => {
         .catch(console.error);
     }
 
-    setConfig(prev => ({ ...prev, pin, contacts, guardianNetwork, language, protectionEnabled: true }));
+    setConfig(prev => ({ ...prev, ownerName, pin, contacts, guardianNetwork, language, protectionEnabled: true }));
     setState('PROTECTED');
     setActiveTab('PROTECTED');
   };
@@ -326,6 +383,7 @@ const App: React.FC = () => {
         {(!config.pin || activeTab === 'SETUP') && state !== 'EMERGENCY' && state !== 'DEACTIVATING' && (
           <SetupView 
             onComplete={handleFinishSetup} 
+            onLanguageChange={(language) => setConfig(prev => ({ ...prev, language }))}
             onCancel={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }}
             initialConfig={config} 
             hideHeader={config.pin !== ''}
@@ -347,7 +405,7 @@ const App: React.FC = () => {
           />
         )}
 
-        {state === 'EMERGENCY' && <EmergencyView contacts={config.contacts} language={config.language} onDeactivate={() => setState('DEACTIVATING')} translations={t} />}
+        {state === 'EMERGENCY' && <EmergencyView ownerName={config.ownerName} contacts={config.contacts} language={config.language} onDeactivate={() => setState('DEACTIVATING')} translations={t} />}
 
         {state === 'DEACTIVATING' && (
           <PinPad 
