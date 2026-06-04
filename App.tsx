@@ -383,6 +383,7 @@ const App: React.FC = () => {
         {(!config.pin || activeTab === 'SETUP') && state !== 'EMERGENCY' && state !== 'DEACTIVATING' && (
           <SetupView 
             onComplete={handleFinishSetup} 
+            onLanguageChange={(language) => setConfig(prev => ({ ...prev, language }))}
             onCancel={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }}
             initialConfig={config} 
             hideHeader={config.pin !== ''}
