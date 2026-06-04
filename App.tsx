@@ -19,6 +19,7 @@ const GEO_OPTIONS = {
 const SHAKE_THRESHOLD = 28; // Secouement volontaire (très intense)
 const BACKGROUND_SHAKE_THRESHOLD = 40; // Hors focus: secouement hyper intense uniquement
 const TAB_ORDER: Array<'PROTECTED' | 'HISTORY' | 'SETUP'> = ['PROTECTED', 'HISTORY', 'SETUP'];
+const VOICE_RECOGNITION_LOCALES = ['fr-FR', 'en-US', 'he-IL', 'ar-SA'];
 const VOICE_TRIGGER_COMMANDS = [
   'alert',
   'alerte',
@@ -84,6 +85,14 @@ const shouldTriggerVoiceCommand = (transcript: string) => {
   return hasCommand && hasProjectNumber;
 };
 
+const getVoiceLocaleCycle = (preferredLocale?: string) => {
+  const normalizedPreferred = preferredLocale || 'fr-FR';
+  return [
+    normalizedPreferred,
+    ...VOICE_RECOGNITION_LOCALES.filter((locale) => locale !== normalizedPreferred),
+  ];
+};
+
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>('SETUP');
   const stateRef = useRef<AppState>('SETUP');
@@ -105,6 +114,7 @@ const App: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const restartListenTimeoutRef = useRef<number | null>(null);
+  const recognitionLocaleIndexRef = useRef<number>(0);
   const lastShakeTime = useRef<number>(0);
   const strongShakeCountRef = useRef<number>(0);
   const swipeStartX = useRef<number | null>(null);
@@ -238,14 +248,20 @@ const App: React.FC = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition && !recognitionRef.current) {
       const recognition = new SpeechRecognition();
+      const localeCycle = getVoiceLocaleCycle(langMeta.locale);
+      const recognitionLocale = localeCycle[recognitionLocaleIndexRef.current % localeCycle.length];
+      recognitionLocaleIndexRef.current = (recognitionLocaleIndexRef.current + 1) % localeCycle.length;
+
       recognition.continuous = false;
-      recognition.lang = langMeta.locale || 'fr-FR';
+      recognition.lang = recognitionLocale;
       recognition.interimResults = false;
+      recognition.maxAlternatives = 5;
 
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event: any) => {
-        const result = event.results[event.results.length - 1][0].transcript;
-        const shouldTrigger = shouldTriggerVoiceCommand(result);
+        const latestResult = event.results[event.results.length - 1];
+        const transcripts = Array.from(latestResult || [], (result: any) => result.transcript).filter(Boolean);
+        const shouldTrigger = transcripts.some((transcript) => shouldTriggerVoiceCommand(String(transcript)));
         if (shouldTrigger) {
           triggerEmergency('VOICE COMMAND');
         }
