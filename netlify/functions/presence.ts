@@ -19,6 +19,18 @@ const toSessionId = (rawDeviceId: string) => {
   return `p97_${hash.toString(16).padStart(8, '0')}`;
 };
 
+
+const normalizePhone = (rawPhone: unknown): string | null => {
+  if (typeof rawPhone !== 'string') return null;
+  const compact = rawPhone.replace(/(?!^)\+/g, '').replace(/[^\d+]/g, '');
+  return /^\+?[0-9]{6,18}$/.test(compact) ? compact : null;
+};
+
+const normalizePhoneList = (rawPhones: unknown) => {
+  if (!Array.isArray(rawPhones)) return [];
+  return Array.from(new Set(rawPhones.map(normalizePhone).filter(Boolean) as string[])).slice(0, 20);
+};
+
 const getPool = async () => {
   if (poolPromise) return poolPromise;
 
@@ -75,6 +87,10 @@ export const handler: Handler = async (event) => {
       lat?: unknown;
       lng?: unknown;
       radiusKm?: unknown;
+      sender?: unknown;
+      message?: unknown;
+      phone?: unknown;
+      contactPhones?: unknown;
     };
     const deviceId = typeof body.deviceId === 'string' && body.deviceId.trim().length > 0
       ? body.deviceId.trim()
@@ -83,6 +99,11 @@ export const handler: Handler = async (event) => {
     const lat = Number.isFinite(Number(body.lat)) ? Number(body.lat) : null;
     const lng = Number.isFinite(Number(body.lng)) ? Number(body.lng) : null;
     const radiusKm = Number.isFinite(Number(body.radiusKm)) ? Math.max(0.1, Number(body.radiusKm)) : 1;
+    const senderName = typeof body.sender === 'string' ? body.sender.trim().slice(0, 80) : '';
+    const appMessage = typeof body.message === 'string' ? body.message.trim().slice(0, 500) : '';
+    const phone = normalizePhone(body.phone);
+    const contactPhones = normalizePhoneList(body.contactPhones);
+    const contactPhonesJson = JSON.stringify(contactPhones);
     const userIP = event.headers['x-nf-client-connection-ip'] || '127.0.0.1';
 
     const startedAt = Date.now();
@@ -107,12 +128,14 @@ export const handler: Handler = async (event) => {
       CREATE TABLE IF NOT EXISTS presence (
         device_id TEXT PRIMARY KEY,
         ip TEXT,
+        phone TEXT,
         lat DOUBLE PRECISION,
         lng DOUBLE PRECISION,
         last_emergency_at TIMESTAMPTZ,
         last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS phone TEXT`);
     await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`);
     await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`);
     await db.query(`ALTER TABLE presence ADD COLUMN IF NOT EXISTS last_emergency_at TIMESTAMPTZ`);
@@ -120,27 +143,36 @@ export const handler: Handler = async (event) => {
       CREATE TABLE IF NOT EXISTS guardian_alerts (
         id BIGSERIAL PRIMARY KEY,
         sender_device_id TEXT NOT NULL,
+        sender_phone TEXT,
+        contact_phones TEXT,
         lat DOUBLE PRECISION NOT NULL,
         lng DOUBLE PRECISION NOT NULL,
         radius_km DOUBLE PRECISION NOT NULL DEFAULT 1,
+        sender_name TEXT,
+        message TEXT,
         resolved_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await db.query(`ALTER TABLE guardian_alerts ADD COLUMN IF NOT EXISTS sender_phone TEXT`);
+    await db.query(`ALTER TABLE guardian_alerts ADD COLUMN IF NOT EXISTS contact_phones TEXT`);
+    await db.query(`ALTER TABLE guardian_alerts ADD COLUMN IF NOT EXISTS sender_name TEXT`);
+    await db.query(`ALTER TABLE guardian_alerts ADD COLUMN IF NOT EXISTS message TEXT`);
     await db.query(`ALTER TABLE guardian_alerts ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ`);
 
     await db.query(
       `
-        INSERT INTO presence (device_id, ip, lat, lng, last_seen)
-        VALUES ($1, $2, $3, $4, NOW())
+        INSERT INTO presence (device_id, ip, phone, lat, lng, last_seen)
+        VALUES ($1, $2, $3, $4, $5, NOW())
         ON CONFLICT (device_id)
         DO UPDATE SET
           ip = EXCLUDED.ip,
+          phone = COALESCE(EXCLUDED.phone, presence.phone),
           lat = COALESCE(EXCLUDED.lat, presence.lat),
           lng = COALESCE(EXCLUDED.lng, presence.lng),
           last_seen = NOW()
       `,
-      [deviceId, userIP, lat, lng],
+      [deviceId, userIP, phone, lat, lng],
     );
 
     await db.query(
@@ -193,10 +225,10 @@ export const handler: Handler = async (event) => {
 
       await db.query(
         `
-          INSERT INTO guardian_alerts (sender_device_id, lat, lng, radius_km, created_at)
-          VALUES ($1, $2, $3, $4, NOW())
+          INSERT INTO guardian_alerts (sender_device_id, sender_phone, contact_phones, lat, lng, radius_km, sender_name, message, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
         `,
-        [deviceId, lat, lng, radiusKm],
+        [deviceId, phone, contactPhonesJson, lat, lng, radiusKm, senderName || null, appMessage || null],
       );
     }
     if (action === 'resolve') {
@@ -214,7 +246,7 @@ export const handler: Handler = async (event) => {
     const incomingAlertsResult = lat !== null && lng !== null
       ? await db.query(
           `
-            SELECT id, created_at, lat, lng, sender_device_id
+            SELECT id, created_at, lat, lng, sender_device_id, sender_name, message, contact_phones
             FROM guardian_alerts
             WHERE sender_device_id <> $1
               AND created_at > NOW() - INTERVAL '90 seconds'
@@ -233,7 +265,7 @@ export const handler: Handler = async (event) => {
         )
       : await db.query(
           `
-            SELECT id, created_at, lat, lng, sender_device_id
+            SELECT id, created_at, lat, lng, sender_device_id, sender_name, message, contact_phones
             FROM guardian_alerts
             WHERE sender_device_id <> $1
               AND created_at > NOW() - INTERVAL '90 seconds'
@@ -245,6 +277,8 @@ export const handler: Handler = async (event) => {
         );
     const latestIncomingAlert = incomingAlertsResult.rows?.[0];
     const hasIncomingAlert = Boolean(latestIncomingAlert);
+    const alertContactPhones = latestIncomingAlert ? JSON.parse(latestIncomingAlert.contact_phones || '[]') as string[] : [];
+    const isContactRecipient = Boolean(phone && alertContactPhones.includes(phone));
     const alertPrecision = lat !== null && lng !== null ? 'exact' : 'approximate';
 
     return {
@@ -264,7 +298,8 @@ export const handler: Handler = async (event) => {
         latestAlertAt: hasIncomingAlert ? latestIncomingAlert.created_at : null,
         latestAlertLat: hasIncomingAlert ? Number(latestIncomingAlert.lat) : null,
         latestAlertLng: hasIncomingAlert ? Number(latestIncomingAlert.lng) : null,
-        latestAlertSender: hasIncomingAlert ? toSessionId(String(latestIncomingAlert.sender_device_id)) : null,
+        latestAlertSender: hasIncomingAlert && isContactRecipient ? (latestIncomingAlert.sender_name || toSessionId(String(latestIncomingAlert.sender_device_id))) : null,
+        latestAlertMessage: hasIncomingAlert && isContactRecipient ? (latestIncomingAlert.message || 'HELP') : hasIncomingAlert ? 'HELP' : null,
         latestAlertPrecision: hasIncomingAlert ? alertPrecision : null,
         session_id: toSessionId(deviceId),
         ip_mask: userIP.replace(/\.\d+$/, '.***'),

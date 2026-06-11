@@ -13,3 +13,18 @@ export const PRESENCE_ENDPOINTS = [
   toAbsolute('/api/presence'),
   '/api/presence',
 ];
+
+export const MESSAGE_COMPOSE_ENDPOINTS = [
+  toAbsolute('/api/messages/compose'),
+  '/api/messages/compose',
+];
+
+export const PUSH_PUBLIC_KEY_ENDPOINTS = [
+  toAbsolute('/api/push/public-key'),
+  '/api/push/public-key',
+];
+
+export const PUSH_SUBSCRIBE_ENDPOINTS = [
+  toAbsolute('/api/push/subscribe'),
+  '/api/push/subscribe',
+];

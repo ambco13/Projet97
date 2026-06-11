@@ -98,10 +98,11 @@ const App: React.FC = () => {
   const stateRef = useRef<AppState>('SETUP');
   const [config, setConfig] = useState<AppConfig>(() => {
     const saved = localStorage.getItem('p97_config');
-    if (!saved) return { ownerName: '', pin: '', contacts: [], guardianNetwork: true, language: 'fr', protectionEnabled: true };
+    if (!saved) return { ownerName: '', ownerPhone: '', pin: '', contacts: [], guardianNetwork: true, language: 'fr', protectionEnabled: true };
     const parsed = JSON.parse(saved);
     return {
       ownerName: parsed.ownerName || '',
+      ownerPhone: parsed.ownerPhone || '',
       ...parsed,
       protectionEnabled: parsed.protectionEnabled !== false,
     };
@@ -357,7 +358,7 @@ const App: React.FC = () => {
     navigateBySwipe(deltaX < 0 ? 'left' : 'right');
   }, [navigateBySwipe]);
 
-  const handleFinishSetup = (ownerName: string, contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => {
+  const handleFinishSetup = (ownerName: string, ownerPhone: string, contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => {
     // Demande de permission pour les capteurs de mouvement (iOS requis)
     if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
       (DeviceMotionEvent as any).requestPermission()
@@ -369,7 +370,7 @@ const App: React.FC = () => {
         .catch(console.error);
     }
 
-    setConfig(prev => ({ ...prev, ownerName, pin, contacts, guardianNetwork, language, protectionEnabled: true }));
+    setConfig(prev => ({ ...prev, ownerName, ownerPhone, pin, contacts, guardianNetwork, language, protectionEnabled: true }));
     setState('PROTECTED');
     setActiveTab('PROTECTED');
   };
@@ -409,7 +410,8 @@ const App: React.FC = () => {
         
         {config.pin && activeTab === 'PROTECTED' && state === 'PROTECTED' && (
           <ProtectedView 
-            contacts={config.contacts} 
+            contacts={config.contacts}
+            ownerPhone={config.ownerPhone || ''}
             isListening={isListening}
             guardianNetwork={config.guardianNetwork}
             language={config.language}
@@ -421,7 +423,7 @@ const App: React.FC = () => {
           />
         )}
 
-        {state === 'EMERGENCY' && <EmergencyView ownerName={config.ownerName} contacts={config.contacts} language={config.language} onDeactivate={() => setState('DEACTIVATING')} translations={t} />}
+        {state === 'EMERGENCY' && <EmergencyView ownerName={config.ownerName} ownerPhone={config.ownerPhone || ''} contacts={config.contacts} language={config.language} onDeactivate={() => setState('DEACTIVATING')} translations={t} />}
 
         {state === 'DEACTIVATING' && (
           <PinPad 
