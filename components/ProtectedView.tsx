@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Shield, Mic, MapPin, Zap, Users, Globe, Move, ArrowUpRight, ArrowDownRight, Minus, Activity } from 'lucide-react';
 import { Contact } from '../types';
-import { PRESENCE_ENDPOINTS } from '../apiEndpoints';
+import { PRESENCE_ENDPOINTS, PUSH_PUBLIC_KEY_ENDPOINTS, PUSH_SUBSCRIBE_ENDPOINTS } from '../apiEndpoints';
 
 interface Props {
   contacts: Contact[];
+  ownerPhone: string;
   isListening: boolean;
   guardianNetwork: boolean;
   language: string;
@@ -32,12 +33,35 @@ interface PresenceResponse {
   latestAlertSender?: string | null;
   latestAlertPrecision?: 'exact' | 'approximate' | null;
   latestAlertIsSelf?: boolean;
+  latestAlertMessage?: string | null;
 }
 
 const POLL_INTERVAL_MS = 10000;
 const DEVICE_ID_KEY = 'p97_device_id';
 const ALERT_NOTIFICATION_TAG = 'p97-nearby-sos';
 const ALERT_NOTIFICATION_COOLDOWN_MS = 30000;
+
+
+const urlBase64ToUint8Array = (base64String: string) => {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i += 1) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+};
+
+const fetchFirstOkJson = async <T,>(endpoints: string[], init?: RequestInit): Promise<T | null> => {
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, init);
+      if (response.ok) return (await response.json()) as T;
+    } catch {
+      // try next endpoint
+    }
+  }
+  return null;
+};
 
 const ALERT_97_BY_LANG: Record<string, string> = {
   fr: 'Alerte 97',
@@ -46,7 +70,7 @@ const ALERT_97_BY_LANG: Record<string, string> = {
   he: 'התראה 97',
 };
 
-const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork, language, protectionEnabled, onTrigger, onToggleProtection, onShowHistory, translations: t }) => {
+const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, guardianNetwork, language, protectionEnabled, onTrigger, onToggleProtection, onShowHistory, translations: t }) => {
   const [pulse, setPulse] = useState(false);
   const [guardianCount, setGuardianCount] = useState<number>(0);
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
@@ -60,11 +84,12 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
   const [incomingAlertSender, setIncomingAlertSender] = useState<string | null>(null);
   const [incomingAlertPrecision, setIncomingAlertPrecision] = useState<'exact' | 'approximate' | null>(null);
   const [incomingAlertIsSelf, setIncomingAlertIsSelf] = useState(false);
+  const [incomingAlertMessage, setIncomingAlertMessage] = useState<string | null>(null);
   const previousCountRef = useRef(0);
   const lastIncomingAlertIdRef = useRef<string | null>(null);
   const lastAlertNotificationTimeRef = useRef<number>(0);
 
-  const notifyNearbySos = async () => {
+  const notifyNearbySos = async (message?: string | null) => {
     if (!('Notification' in window)) return;
 
     if (Notification.permission === 'default') {
@@ -81,7 +106,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
     const title = 'Projet 97';
     const alert97Text = ALERT_97_BY_LANG[language] || ALERT_97_BY_LANG.fr;
     const options: NotificationOptions = {
-      body: `${alert97Text} — ${t.nearbySosDetected || 'Alerte SOS à proximité (≤ 1 km).'}`,
+      body: message || `${alert97Text} — ${t.nearbySosDetected || 'Alerte SOS à proximité (≤ 1 km).'}`,
       tag: ALERT_NOTIFICATION_TAG,
       requireInteraction: true,
     };
@@ -114,6 +139,43 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
     });
 
   useEffect(() => {
+    const registerPushSubscription = async () => {
+      if (!guardianNetwork || !ownerPhone.trim()) return;
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+
+      const permission = Notification.permission === 'default'
+        ? await Notification.requestPermission().catch(() => 'denied' as NotificationPermission)
+        : Notification.permission;
+      if (permission !== 'granted') return;
+
+      const keyResponse = await fetchFirstOkJson<{ publicKey?: string }>(PUSH_PUBLIC_KEY_ENDPOINTS);
+      if (!keyResponse?.publicKey) return;
+
+      let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+      if (!deviceId) {
+        const uuid = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+        deviceId = `p97_${uuid}`;
+        localStorage.setItem(DEVICE_ID_KEY, deviceId);
+      }
+
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      const existingSubscription = await registration.pushManager.getSubscription();
+      const subscription = existingSubscription || await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(keyResponse.publicKey),
+      });
+
+      await fetchFirstOkJson(PUSH_SUBSCRIBE_ENDPOINTS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId, phone: ownerPhone, subscription }),
+      });
+    };
+
+    registerPushSubscription().catch(() => undefined);
+  }, [guardianNetwork, ownerPhone]);
+
+  useEffect(() => {
     const pulseInterval = setInterval(() => setPulse((p) => !p), 2000);
     return () => clearInterval(pulseInterval);
   }, []);
@@ -136,6 +198,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
       setIncomingAlertSender(null);
       setIncomingAlertPrecision(null);
       setIncomingAlertIsSelf(false);
+      setIncomingAlertMessage(null);
       setCloudInfo({ latency: 'error', engine: reason });
     };
 
@@ -168,6 +231,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
               },
               body: JSON.stringify({
                 deviceId,
+                phone: ownerPhone,
                 lat: coords?.lat,
                 lng: coords?.lng,
               }),
@@ -198,6 +262,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         const latestAlertId = data.latestAlertId || null;
         const latestAlertLat = Number.isFinite(Number(data.latestAlertLat)) ? Number(data.latestAlertLat) : null;
         const latestAlertLng = Number.isFinite(Number(data.latestAlertLng)) ? Number(data.latestAlertLng) : null;
+        const latestAlertMessage = hasIncomingAlert && data.latestAlertMessage ? String(data.latestAlertMessage) : null;
 
         setDbStatus('LIVE');
         setGuardianCount(safeCount);
@@ -208,6 +273,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         setIncomingAlertSender(hasIncomingAlert ? (data.latestAlertSender || null) : null);
         setIncomingAlertPrecision(hasIncomingAlert ? (data.latestAlertPrecision || 'approximate') : null);
         setIncomingAlertIsSelf(hasIncomingAlert ? Boolean(data.latestAlertIsSelf) : false);
+        setIncomingAlertMessage(latestAlertMessage);
         setCloudInfo({
           latency: data.latency || 'n/a',
           engine: data.engine || 'CLOUD_UNKNOWN',
@@ -224,7 +290,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
           if (isNewAlert || cooldownReached) {
             lastAlertNotificationTimeRef.current = now;
             if (navigator.vibrate) navigator.vibrate([120, 80, 120, 80, 300]);
-            notifyNearbySos();
+            notifyNearbySos(latestAlertMessage);
           }
         } else {
           lastAlertNotificationTimeRef.current = 0;
@@ -240,7 +306,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
     const pollInterval = setInterval(syncPresence, POLL_INTERVAL_MS);
 
     return () => clearInterval(pollInterval);
-  }, [guardianNetwork, language, t.nearbySosDetected]);
+  }, [guardianNetwork, language, ownerPhone, t.nearbySosDetected]);
 
   return (
     <div className="flex flex-col p-6 pb-40 animate-in fade-in zoom-in-95 duration-700">
@@ -325,6 +391,12 @@ const ProtectedView: React.FC<Props> = ({ contacts, isListening, guardianNetwork
         {incomingAlertActive && (
           <div className="bg-red-600/20 border border-red-500/40 p-4 rounded-2xl text-red-100 text-xs font-bold tracking-wide space-y-2">
             <p>⚠️ {incomingAlertIsSelf ? (t.yourSosBroadcasting || 'Votre SOS est en cours de diffusion (rayon 1 km).') : (t.nearbySosDetected || 'SOS détecté à proximité (rayon 1 km)')}</p>
+            {incomingAlertMessage && (
+              <div className="rounded-xl border border-red-400/30 bg-red-950/40 p-3 text-[11px] leading-relaxed text-red-50">
+                <p className="mb-1 text-[9px] uppercase tracking-widest text-red-200/70">{t.inAppMessage || 'MP appli'}</p>
+                <p>{incomingAlertMessage}</p>
+              </div>
+            )}
             {incomingAlertSender && (
               <p className="text-[10px] text-red-200/90">{t.sender || 'Émetteur'}: {incomingAlertSender}</p>
             )}

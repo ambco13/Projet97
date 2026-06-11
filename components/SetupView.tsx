@@ -5,7 +5,7 @@ import { Contact, AppConfig } from '../types';
 import { languages } from '../translations';
 
 interface Props {
-  onComplete: (ownerName: string, contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => void;
+  onComplete: (ownerName: string, ownerPhone: string, contacts: Contact[], pin: string, guardianNetwork: boolean, language: string) => void;
   onLanguageChange?: (language: string) => void;
   onCancel?: () => void;
   initialConfig?: AppConfig;
@@ -16,6 +16,7 @@ interface Props {
 const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, initialConfig, hideHeader = false, translations: t }) => {
   const [contacts, setContacts] = useState<Contact[]>(initialConfig?.contacts || []);
   const [ownerName, setOwnerName] = useState(initialConfig?.ownerName || '');
+  const [ownerPhone, setOwnerPhone] = useState(initialConfig?.ownerPhone || '');
   const [pin, setPin] = useState(initialConfig?.pin || '');
   const [guardianNetwork, setGuardianNetwork] = useState(initialConfig?.guardianNetwork ?? true);
   const [language, setLanguage] = useState<string>(initialConfig?.language || 'fr');
@@ -73,7 +74,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
     setShowLangMenu(false);
   };
 
-  const isReady = ownerName.trim().length > 0 && contacts.length > 0 && pin.length === 4 && geoState === 'SUCCESS' && micState === 'SUCCESS';
+  const isReady = ownerName.trim().length > 0 && ownerPhone.trim().length > 0 && contacts.length > 0 && pin.length === 4 && geoState === 'SUCCESS' && micState === 'SUCCESS';
 
   return (
     <div className="p-8 pb-32 animate-in fade-in slide-in-from-bottom-6 duration-700 relative min-h-full">
@@ -194,7 +195,9 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
 
         <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.identityLabel}</h2>
-          <input type="text" placeholder={t.identityPlaceholder} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="w-full bg-neutral-950 border border-white/5 rounded-2xl p-4 text-sm text-white" />
+          <input type="text" placeholder={t.identityPlaceholder} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="w-full bg-neutral-950 border border-white/5 rounded-2xl p-4 text-sm text-white mb-3" />
+          <input type="tel" placeholder={t.ownerPhonePlaceholder || '+33...'} value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} className="w-full bg-neutral-950 border border-white/5 rounded-2xl p-4 text-sm text-white" />
+          <p className="text-[10px] leading-relaxed text-neutral-500 font-semibold mt-3">{t.ownerPhoneHint || 'Ce numéro permet à vos contacts de recevoir le HELP même hors du rayon 1 km.'}</p>
         </section>
 
         <section className="bg-neutral-900/40 rounded-3xl p-6 border border-white/5">
@@ -220,7 +223,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
           </div>
         </section>
 
-        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), contacts, pin, guardianNetwork, language)} className="w-full bg-red-600 text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
+        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), ownerPhone.trim(), contacts, pin, guardianNetwork, language)} className="w-full bg-red-600 text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
           {initialConfig?.pin ? t.saveChanges : t.activateProtection}
         </button>
       </div>

@@ -2,21 +2,23 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Lock, Volume2, Send } from 'lucide-react';
 import { Contact } from '../types';
-import { PRESENCE_ENDPOINTS } from '../apiEndpoints';
+import { MESSAGE_COMPOSE_ENDPOINTS, PRESENCE_ENDPOINTS } from '../apiEndpoints';
 import MapView from './MapView';
 
 interface Props {
   ownerName: string;
+  ownerPhone: string;
   contacts: Contact[];
   language: string;
   onDeactivate: () => void;
   translations: any;
 }
 
-const EmergencyView: React.FC<Props> = ({ ownerName, contacts, language, onDeactivate, translations: t }) => {
+const EmergencyView: React.FC<Props> = ({ ownerName, ownerPhone, contacts, language, onDeactivate, translations: t }) => {
   const [seconds, setSeconds] = useState(0);
   const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
   const [nearbyGuardians, setNearbyGuardians] = useState<number | null>(null);
+  const [appMessageStatus, setAppMessageStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
   const voiceTimerRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const autoOpenedRef = useRef(false);
@@ -41,29 +43,95 @@ const EmergencyView: React.FC<Props> = ({ ownerName, contacts, language, onDeact
     );
   };
 
+  const buildEmergencyMessage = (position: { lat: number; lng: number }) => {
+    const url = `https://www.google.com/maps?q=${position.lat},${position.lng}`;
+    const sender = ownerName?.trim() || t.defaultSender;
+    return `HELP - ${t.alertPrefix} ${sender}. ${t.sosActive}! Location: ${url}`;
+  };
+
+  const showLocalDeliveryNotification = async (message: string) => {
+    if (!('Notification' in window)) return;
+
+    try {
+      const permission = Notification.permission === 'default'
+        ? await Notification.requestPermission()
+        : Notification.permission;
+
+      if (permission !== 'granted') return;
+
+      const options: NotificationOptions = {
+        body: message,
+        tag: 'p97-outgoing-sos',
+        requireInteraction: true,
+      };
+
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.showNotification(t.appMessageSent || 'Message Projet 97 envoyé', options);
+          return;
+        }
+      }
+
+      new Notification(t.appMessageSent || 'Message Projet 97 envoyé', options);
+    } catch {
+      // Notifications are best-effort only.
+    }
+  };
+
+  const prepareNativeSmsCompose = async (message: string) => {
+    if (!contacts.length) return null;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const platform = isIOS ? 'ios' : /Android/i.test(navigator.userAgent) ? 'android' : 'unknown';
+
+    for (const contact of contacts) {
+      for (const endpoint of MESSAGE_COMPOSE_ENDPOINTS) {
+        try {
+          await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: contact.phone, text: message, platform }),
+          });
+          break;
+        } catch {
+          // try next endpoint
+        }
+      }
+    }
+
+    const phones = contacts.map(c => c.phone).join(',');
+    const separator = isIOS ? '&' : '?';
+    return `sms:${phones}${separator}body=${encodeURIComponent(message)}`;
+  };
+
+  const deliverAppMessageThenOpenSms = async (message: string, position: { lat: number; lng: number }) => {
+    if (!contacts.length) return;
+
+    setAppMessageStatus('sending');
+    const nearbyCount = await sendNearbyAlert(position, message);
+    setAppMessageStatus(nearbyCount === null ? 'failed' : 'sent');
+    await showLocalDeliveryNotification(message);
+
+    const smsUrl = await prepareNativeSmsCompose(message);
+    if (smsUrl) window.location.href = smsUrl;
+  };
+
   const shareLocation = async () => {
     if (!coords) return;
-    const url = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
-    const sender = ownerName?.trim() || t.defaultSender;
-    const message = `${t.alertPrefix} ${sender}. ${t.sosActive}! Location: ${url}`;
-    sendSMSFallback(message);
+    await deliverAppMessageThenOpenSms(buildEmergencyMessage(coords), coords);
   };
 
-  const sendSMSFallback = (message: string) => {
-    if (!contacts.length) return;
-    const phones = contacts.map(c => c.phone).join(',');
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const smsUrl = isIOS ? `sms:${phones}&body=${encodeURIComponent(message)}` : `sms:${phones}?body=${encodeURIComponent(message)}`;
-    window.location.href = smsUrl;
-  };
-
-  const sendNearbyAlert = async (position: { lat: number; lng: number }) => {
+  const sendNearbyAlert = async (position: { lat: number; lng: number }, message?: string) => {
     const payload = {
       action: 'alert',
       radiusKm: 1,
       deviceId: getOrCreateDeviceId(),
       lat: position.lat,
       lng: position.lng,
+      sender: ownerName?.trim() || t.defaultSender,
+      phone: ownerPhone,
+      contactPhones: contacts.map((contact) => contact.phone),
+      message: message || buildEmergencyMessage(position),
     };
 
     let bestNearbyCount: number | null = null;
@@ -85,26 +153,26 @@ const EmergencyView: React.FC<Props> = ({ ownerName, contacts, language, onDeact
       }
     }));
 
-    setNearbyGuardians(bestNearbyCount ?? 0);
+    const finalCount = bestNearbyCount ?? 0;
+    setNearbyGuardians(finalCount);
+    return bestNearbyCount;
   };
 
   useEffect(() => {
     if (!coords || autoOpenedRef.current || contacts.length === 0) return;
     autoOpenedRef.current = true;
-    const url = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
-    const sender = ownerName?.trim() || t.defaultSender;
-    const message = `${t.alertPrefix} ${sender}. ${t.sosActive}! Location: ${url}`;
-    sendSMSFallback(message);
-  }, [coords, contacts.length, ownerName, t.alertPrefix, t.defaultSender, t.sosActive]);
+    const message = buildEmergencyMessage(coords);
+    deliverAppMessageThenOpenSms(message, coords);
+  }, [coords, contacts, contacts.length, ownerName, ownerPhone, t.alertPrefix, t.defaultSender, t.sosActive]);
 
 
   useEffect(() => {
     if (!coords) return;
 
-    sendNearbyAlert(coords);
-    const interval = window.setInterval(() => sendNearbyAlert(coords), 20000);
+    if (contacts.length === 0) sendNearbyAlert(coords, buildEmergencyMessage(coords));
+    const interval = window.setInterval(() => sendNearbyAlert(coords, buildEmergencyMessage(coords)), 20000);
     return () => window.clearInterval(interval);
-  }, [coords]);
+  }, [coords, contacts.length]);
 
   useEffect(() => {
     const timer = setInterval(() => setSeconds(s => s + 1), 1000);
@@ -141,10 +209,18 @@ const EmergencyView: React.FC<Props> = ({ ownerName, contacts, language, onDeact
             {coords ? <MapView lat={coords.lat} lng={coords.lng} zoom={17} /> : <div className="w-full h-full flex items-center justify-center bg-neutral-950 text-[10px] font-black uppercase text-neutral-500">GPS...</div>}
           </div>
 
-          <button disabled={!coords} onClick={shareLocation} className="w-full bg-red-600 text-white font-black py-6 rounded-[1.5rem] shadow-[0_0_30px_rgba(239,68,68,0.4)] flex flex-col items-center justify-center gap-0.5 mb-6 animate-bounce disabled:opacity-20 shrink-0">
+          <button disabled={!coords || appMessageStatus === 'sending'} onClick={shareLocation} className="w-full bg-red-600 text-white font-black py-6 rounded-[1.5rem] shadow-[0_0_30px_rgba(239,68,68,0.4)] flex flex-col items-center justify-center gap-0.5 mb-6 animate-bounce disabled:opacity-20 shrink-0">
             <div className="flex items-center gap-2"><Send size={20} /><span className="uppercase tracking-[0.2em] text-[12px]">{t.alertContacts}</span></div>
-            <span className="text-[9px] opacity-60 uppercase font-black">{t.sendingLocation}</span>
+            <span className="text-[9px] opacity-60 uppercase font-black">{appMessageStatus === 'sending' ? (t.appMessageSending || 'Envoi du MP Projet 97') : t.sendingLocation}</span>
           </button>
+
+          {appMessageStatus !== 'idle' && (
+            <div className="w-full mb-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-[10px] font-black uppercase tracking-widest text-white/70">
+              {appMessageStatus === 'sending' && (t.appMessageSending || 'MP Projet 97 en cours avant SMS natif...')}
+              {appMessageStatus === 'sent' && (t.appMessageSent || 'MP Projet 97 envoyé. Ouverture de Messages...')}
+              {appMessageStatus === 'failed' && (t.appMessageFailed || "MP appli indisponible: ouverture de Messages quand même.")}
+            </div>
+          )}
 
           <div className="w-full bg-white/5 p-5 rounded-[1.5rem] border border-white/5 mb-4">
             <div className="flex items-center gap-3 mb-2">

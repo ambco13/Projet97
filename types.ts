@@ -18,6 +18,7 @@ export type AppState = 'SETUP' | 'PROTECTED' | 'EMERGENCY' | 'DEACTIVATING';
 
 export interface AppConfig {
   ownerName: string;
+  ownerPhone?: string;
   pin: string;
   contacts: Contact[];
   guardianNetwork: boolean;
