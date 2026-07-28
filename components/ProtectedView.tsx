@@ -309,13 +309,13 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
   }, [guardianNetwork, language, ownerPhone, t.nearbySosDetected]);
 
   return (
-    <div className="flex flex-col p-6 pb-40 animate-in fade-in zoom-in-95 duration-700">
+    <div className="flex flex-col p-6 pb-36 animate-in fade-in zoom-in-95 duration-700">
       <div className="flex flex-col items-center justify-center pt-10 mb-12">
         <div className="relative w-48 h-48 flex items-center justify-center">
           <div className={`absolute inset-[-30px] border border-green-500/10 rounded-full transition-all duration-[2000ms] ${pulse ? 'scale-110 opacity-40' : 'scale-90 opacity-0'}`}></div>
           <div className={`absolute inset-[-15px] border border-green-500/20 rounded-full transition-all duration-[1500ms] ${pulse ? 'scale-105 opacity-60' : 'scale-95 opacity-0'}`}></div>
 
-          <div className="relative z-10 w-full h-full rounded-full bg-neutral-950 border-[3px] border-green-500/40 flex flex-col items-center justify-center shadow-[0_0_60px_rgba(34,197,94,0.2)]">
+          <div className="relative z-10 w-full h-full rounded-[3.2rem] p97-glass border-green-400/30 flex flex-col items-center justify-center shadow-[0_0_80px_rgba(34,211,238,0.18)]">
             <div className="absolute inset-2 border border-green-500/5 rounded-full animate-[spin_10s_linear_infinite]"></div>
             <Shield size={64} className="text-green-500 mb-2 drop-shadow-[0_0_15px_rgba(34,197,94,0.4)]" fill="currentColor" fillOpacity={0.1} />
             <div className="h-1 w-10 bg-green-500/20 rounded-full mb-1"></div>
@@ -357,7 +357,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
         </div>
 
         <div className="text-center space-y-2 mt-12">
-          <h2 className="text-3xl font-black text-white tracking-tighter">{t.protectionActive}</h2>
+          <h2 className="text-4xl font-black text-white tracking-tighter bg-gradient-to-r from-white via-cyan-100 to-red-100 bg-clip-text text-transparent">{t.protectionActive}</h2>
           <div className="flex items-center justify-center gap-2 text-neutral-500">
             <Move size={14} className="animate-bounce" />
             <p className="text-sm font-medium leading-relaxed max-w-[260px]">{t.voiceInstruction}</p>
@@ -366,7 +366,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
       </div>
 
       <div className="w-full grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-neutral-900/40 p-5 rounded-[2rem] border border-white/5 backdrop-blur-sm flex flex-col items-center text-center">
+        <div className="p97-glass p-5 rounded-[2rem] flex flex-col items-center text-center">
           <div className="flex items-center justify-center mb-3 relative">
             <Mic size={20} className={isListening ? 'text-green-500 animate-pulse' : 'text-neutral-600'} />
             {isListening && (
@@ -380,7 +380,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
           <p className="text-[11px] font-black text-white truncate w-full uppercase">{protectionEnabled ? t.listening : (t.sleeping || 'PAUSE')}</p>
         </div>
 
-        <div className="bg-neutral-900/40 p-5 rounded-[2rem] border border-white/5 backdrop-blur-sm flex flex-col items-center text-center">
+        <div className="p97-glass p-5 rounded-[2rem] flex flex-col items-center text-center">
           <MapPin size={20} className="text-blue-500 mb-3" />
           <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1">{t.gpsMesh}</p>
           <p className="text-[11px] font-black text-white uppercase">{guardianNetwork ? t.community : t.private}</p>
@@ -424,7 +424,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
           </div>
         )}
 
-        <div className="bg-neutral-900/60 p-5 rounded-[1.5rem] border border-white/5 flex items-center gap-4">
+        <div className="p97-glass p-5 rounded-[1.5rem] flex items-center gap-4">
           <div className="bg-red-500/10 p-3 rounded-xl shrink-0">
             <Zap className="text-red-500" size={18} />
           </div>
@@ -439,7 +439,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
         {protectionEnabled && (
           <button
             onClick={onTrigger}
-            className="w-full bg-white text-black font-black py-5 rounded-[1.5rem] shadow-xl hover:bg-red-600 hover:text-white transition-all transform active:scale-[0.97] uppercase tracking-widest text-xs"
+            className="w-full p97-primary text-white font-black py-5 rounded-[1.5rem] shadow-xl transition-all transform active:scale-[0.97] uppercase tracking-widest text-xs"
           >
             {t.manualSos}
           </button>
