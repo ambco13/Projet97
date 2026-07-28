@@ -61,7 +61,7 @@ const MapView: React.FC<Props> = ({ lat, lng, zoom = 15 }) => {
   return (
     <div 
       ref={mapRef} 
-      className="w-full h-full rounded-2xl overflow-hidden shadow-inner"
+      className="w-full h-full rounded-2xl overflow-hidden shadow-inner saturate-125 contrast-110"
       style={{ touchAction: 'pan-x pan-y' }}
     />
   );

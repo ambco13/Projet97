@@ -385,7 +385,7 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="flex flex-col h-screen max-w-md mx-auto bg-[#050505] shadow-2xl overflow-hidden relative border-x border-neutral-900"
+      className="p97-shell p97-luxe-bg flex flex-col h-screen max-w-md mx-auto overflow-hidden relative border-x border-white/10 sm:my-4 sm:h-[calc(100vh-2rem)] sm:rounded-[3rem]"
       dir={langMeta.dir}
     >
       <div className={`absolute inset-0 transition-opacity duration-1000 pointer-events-none z-0 ${state === 'EMERGENCY' ? 'opacity-100' : 'opacity-0'}`}>
@@ -393,7 +393,7 @@ const App: React.FC = () => {
       </div>
 
       <div
-        className="flex-1 relative z-10 overflow-y-auto scroll-smooth"
+        className="p97-scrollbar flex-1 relative z-10 overflow-y-auto scroll-smooth"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -441,7 +441,7 @@ const App: React.FC = () => {
       </div>
 
       {showNav && (
-        <nav className="absolute bottom-0 left-0 right-0 bg-neutral-900/95 backdrop-blur-3xl border-t border-white/5 px-4 flex justify-around items-center z-30 h-24 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <nav className="absolute bottom-4 left-4 right-4 p97-luxe-card rounded-[2rem] px-4 flex justify-around items-center z-30 h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.35)]">
           <button onClick={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'PROTECTED' ? 'text-red-500 scale-110' : 'text-neutral-500 hover:text-neutral-300'}`}>
             <Shield size={22} fill={activeTab === 'PROTECTED' ? 'currentColor' : 'none'} />
             <span className="text-[9px] font-black uppercase tracking-widest">{t.active}</span>
