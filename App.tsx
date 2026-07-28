@@ -385,7 +385,7 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="p97-shell flex flex-col h-screen max-w-md mx-auto overflow-hidden relative border-x border-white/10 sm:my-4 sm:h-[calc(100vh-2rem)] sm:rounded-[2.5rem]"
+      className="p97-shell p97-luxe-bg flex flex-col h-screen max-w-md mx-auto overflow-hidden relative border-x border-white/10 sm:my-4 sm:h-[calc(100vh-2rem)] sm:rounded-[3rem]"
       dir={langMeta.dir}
     >
       <div className={`absolute inset-0 transition-opacity duration-1000 pointer-events-none z-0 ${state === 'EMERGENCY' ? 'opacity-100' : 'opacity-0'}`}>
@@ -441,7 +441,7 @@ const App: React.FC = () => {
       </div>
 
       {showNav && (
-        <nav className="absolute bottom-4 left-4 right-4 p97-glass rounded-[2rem] px-4 flex justify-around items-center z-30 h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.35)]">
+        <nav className="absolute bottom-4 left-4 right-4 p97-luxe-card rounded-[2rem] px-4 flex justify-around items-center z-30 h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.35)]">
           <button onClick={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'PROTECTED' ? 'text-red-500 scale-110' : 'text-neutral-500 hover:text-neutral-300'}`}>
             <Shield size={22} fill={activeTab === 'PROTECTED' ? 'currentColor' : 'none'} />
             <span className="text-[9px] font-black uppercase tracking-widest">{t.active}</span>

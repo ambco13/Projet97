@@ -103,15 +103,15 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
     <div className="p97-page p-6 flex flex-col h-full animate-in slide-in-from-right duration-500">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="p97-title text-4xl font-black tracking-tighter">{t.logs}</h2>
+          <h2 className="p97-luxe-title text-4xl font-black tracking-tighter">{t.logs}</h2>
           <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t.securityReports}</p>
         </div>
-        <button onClick={onClose} className="p-3 p97-glass rounded-2xl hover:bg-white/10 transition-colors">
+        <button onClick={onClose} className="p-3 p97-luxe-card rounded-2xl hover:bg-white/10 transition-colors">
           <X size={24} className="text-neutral-400" />
         </button>
       </div>
 
-      <div className="mb-4 p97-glass rounded-3xl p-3">
+      <div className="mb-4 p97-luxe-card rounded-3xl p-3">
         <div className="grid grid-cols-3 gap-2">
           {allFilters.filter((filter) => filter !== 'ALL').map((type) => (
             <button
@@ -162,7 +162,7 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
               <button
                 key={log.id}
                 onClick={() => setSelectedLog(log)}
-                className="text-left p97-soft rounded-2xl p-3 min-h-28 hover:border-red-500/40 hover:-translate-y-0.5 transition-all"
+                className="text-left p97-luxe-card rounded-2xl p-3 min-h-28 hover:border-red-500/40 hover:-translate-y-0.5 transition-all"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-mono text-neutral-500">#{log.id.slice(-4)}</span>
@@ -185,7 +185,7 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
 
       {selectedLog && (
         <div className="fixed inset-0 z-[115] bg-slate-950/75 backdrop-blur-sm flex items-end">
-          <div className="w-full rounded-t-[2rem] p97-glass p-5 animate-in slide-in-from-bottom duration-300">
+          <div className="w-full rounded-t-[2rem] p97-luxe-card p-5 animate-in slide-in-from-bottom duration-300">
             <div className="w-12 h-1.5 rounded-full bg-neutral-700 mx-auto mb-4" />
             <div className="flex justify-between items-start gap-3 mb-4">
               <div>

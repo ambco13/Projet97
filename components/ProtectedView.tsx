@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Shield, Mic, MapPin, Zap, Users, Globe, Move, ArrowUpRight, ArrowDownRight, Minus, Activity } from 'lucide-react';
+import { Shield, Mic, MapPin, Zap, Users, Globe, Move, ArrowUpRight, ArrowDownRight, Minus, Activity, Sparkles } from 'lucide-react';
 import { Contact } from '../types';
 import { PRESENCE_ENDPOINTS, PUSH_PUBLIC_KEY_ENDPOINTS, PUSH_SUBSCRIBE_ENDPOINTS } from '../apiEndpoints';
 
@@ -310,12 +310,23 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
 
   return (
     <div className="flex flex-col p-6 pb-36 animate-in fade-in zoom-in-95 duration-700">
-      <div className="flex flex-col items-center justify-center pt-10 mb-12">
-        <div className="relative w-48 h-48 flex items-center justify-center">
+      <header className="mb-8 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.34em] text-cyan-200/70">Projet 97</p>
+          <h1 className="p97-luxe-title text-4xl font-black">Guardian</h1>
+        </div>
+        <div className="p97-chrome-pill flex items-center gap-2 rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-widest text-emerald-100">
+          <Sparkles size={12} className="text-emerald-300" />
+          {protectionEnabled ? t.active : (t.inactive || 'Inactif')}
+        </div>
+      </header>
+
+      <div className="flex flex-col items-center justify-center mb-12">
+        <div className="relative w-56 h-56 flex items-center justify-center">
           <div className={`absolute inset-[-30px] border border-green-500/10 rounded-full transition-all duration-[2000ms] ${pulse ? 'scale-110 opacity-40' : 'scale-90 opacity-0'}`}></div>
           <div className={`absolute inset-[-15px] border border-green-500/20 rounded-full transition-all duration-[1500ms] ${pulse ? 'scale-105 opacity-60' : 'scale-95 opacity-0'}`}></div>
 
-          <div className="relative z-10 w-full h-full rounded-[3.2rem] p97-glass border-green-400/30 flex flex-col items-center justify-center shadow-[0_0_80px_rgba(34,211,238,0.18)]">
+          <div className="relative z-10 w-full h-full rounded-[4rem] p97-safe-orb flex flex-col items-center justify-center">
             <div className="absolute inset-2 border border-green-500/5 rounded-full animate-[spin_10s_linear_infinite]"></div>
             <Shield size={64} className="text-green-500 mb-2 drop-shadow-[0_0_15px_rgba(34,197,94,0.4)]" fill="currentColor" fillOpacity={0.1} />
             <div className="h-1 w-10 bg-green-500/20 rounded-full mb-1"></div>
@@ -357,7 +368,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
         </div>
 
         <div className="text-center space-y-2 mt-12">
-          <h2 className="text-4xl font-black text-white tracking-tighter bg-gradient-to-r from-white via-cyan-100 to-red-100 bg-clip-text text-transparent">{t.protectionActive}</h2>
+          <h2 className="p97-luxe-title text-5xl font-black">{t.protectionActive}</h2>
           <div className="flex items-center justify-center gap-2 text-neutral-500">
             <Move size={14} className="animate-bounce" />
             <p className="text-sm font-medium leading-relaxed max-w-[260px]">{t.voiceInstruction}</p>
@@ -366,7 +377,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
       </div>
 
       <div className="w-full grid grid-cols-2 gap-4 mb-8">
-        <div className="p97-glass p-5 rounded-[2rem] flex flex-col items-center text-center">
+        <div className="p97-luxe-card p-5 rounded-[2rem] flex flex-col items-center text-center">
           <div className="flex items-center justify-center mb-3 relative">
             <Mic size={20} className={isListening ? 'text-green-500 animate-pulse' : 'text-neutral-600'} />
             {isListening && (
@@ -380,7 +391,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
           <p className="text-[11px] font-black text-white truncate w-full uppercase">{protectionEnabled ? t.listening : (t.sleeping || 'PAUSE')}</p>
         </div>
 
-        <div className="p97-glass p-5 rounded-[2rem] flex flex-col items-center text-center">
+        <div className="p97-luxe-card p-5 rounded-[2rem] flex flex-col items-center text-center">
           <MapPin size={20} className="text-blue-500 mb-3" />
           <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1">{t.gpsMesh}</p>
           <p className="text-[11px] font-black text-white uppercase">{guardianNetwork ? t.community : t.private}</p>
@@ -424,7 +435,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
           </div>
         )}
 
-        <div className="p97-glass p-5 rounded-[1.5rem] flex items-center gap-4">
+        <div className="p97-luxe-card p-5 rounded-[1.5rem] flex items-center gap-4">
           <div className="bg-red-500/10 p-3 rounded-xl shrink-0">
             <Zap className="text-red-500" size={18} />
           </div>
@@ -439,7 +450,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
         {protectionEnabled && (
           <button
             onClick={onTrigger}
-            className="w-full p97-primary text-white font-black py-5 rounded-[1.5rem] shadow-xl transition-all transform active:scale-[0.97] uppercase tracking-widest text-xs"
+            className="w-full p97-sos-luxe text-white font-black py-6 rounded-[1.8rem] shadow-xl transition-all transform active:scale-[0.97] uppercase tracking-[0.24em] text-xs"
           >
             {t.manualSos}
           </button>

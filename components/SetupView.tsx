@@ -119,7 +119,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
               <ShieldCheck className="text-white" size={32} />
             </div>
             <div>
-              <h1 className="p97-title text-3xl font-black tracking-tighter">{t.appTitle}</h1>
+              <h1 className="p97-luxe-title text-3xl font-black tracking-tighter">{t.appTitle}</h1>
               <p className="text-red-500 font-black text-[10px] uppercase tracking-[0.3em]">{t.guardianProtocol}</p>
             </div>
           </div>
@@ -127,13 +127,13 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
       ) : (
         <div className="mb-10 relative min-h-14">
           <div>
-            <h2 className="p97-title text-3xl font-black tracking-tighter">{t.settings}</h2>
+            <h2 className="p97-luxe-title text-3xl font-black tracking-tighter">{t.settings}</h2>
             <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t.protocolEdition}</p>
           </div>
           {onCancel && (
             <button
               onClick={onCancel}
-              className={`absolute top-0 ${isRtl ? 'left-0' : 'right-0'} p-3 p97-glass rounded-2xl text-neutral-400 hover:text-white transition-colors`}
+              className={`absolute top-0 ${isRtl ? 'left-0' : 'right-0'} p-3 p97-luxe-card rounded-2xl text-neutral-400 hover:text-white transition-colors`}
             >
               {isRtl ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
             </button>
@@ -142,7 +142,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
       )}
 
       <div className="space-y-6">
-        <div className={`p97-glass rounded-3xl p-4 border flex items-center justify-between transition-colors ${dbState === 'CONNECTED' ? 'border-blue-500/20' : 'border-white/5'}`}>
+        <div className={`p97-luxe-card rounded-3xl p-4 border flex items-center justify-between transition-colors ${dbState === 'CONNECTED' ? 'border-blue-500/20' : 'border-white/5'}`}>
            <div className="flex items-center gap-3">
              <Cloud className={dbState === 'CONNECTED' ? 'text-blue-500' : 'text-neutral-500 animate-pulse'} size={20} />
              <div>
@@ -155,7 +155,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
 
         <div className="grid grid-cols-2 gap-3">
           <section className={`rounded-3xl p-5 border transition-all duration-500 flex flex-col items-center ${
-            geoState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : geoState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'p97-glass'
+            geoState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : geoState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'p97-luxe-card'
           }`}>
             <div className="flex justify-between w-full items-start mb-3">
               <h2 className="text-[10px] font-black text-white uppercase flex items-center gap-2">
@@ -171,7 +171,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
           </section>
 
           <section className={`rounded-3xl p-5 border transition-all duration-500 flex flex-col items-center ${
-            micState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : micState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'p97-glass'
+            micState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : micState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'p97-luxe-card'
           }`}>
             <div className="flex justify-between w-full items-start mb-3">
               <h2 className="text-[10px] font-black text-white uppercase flex items-center gap-2">
@@ -187,20 +187,20 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
           </section>
         </div>
 
-        <section className="p97-glass rounded-3xl p-6">
+        <section className="p97-luxe-card rounded-3xl p-6">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><Key size={16} className="text-red-500" />{t.pinCode}</h2>
           <input type="password" maxLength={4} inputMode="numeric" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
             className="w-full bg-slate-950/70 border border-white/10 rounded-2xl p-4 text-center text-3xl font-black tracking-[1em] text-white focus:ring-2 focus:ring-red-500 outline-none transition-all" />
         </section>
 
-        <section className="p97-glass rounded-3xl p-6">
+        <section className="p97-luxe-card rounded-3xl p-6">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.identityLabel}</h2>
           <input type="text" placeholder={t.identityPlaceholder} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="w-full bg-slate-950/70 border border-white/10 rounded-2xl p-4 text-sm text-white mb-3" />
           <input type="tel" placeholder={t.ownerPhonePlaceholder || '+33...'} value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} className="w-full bg-slate-950/70 border border-white/10 rounded-2xl p-4 text-sm text-white" />
           <p className="text-[10px] leading-relaxed text-neutral-500 font-semibold mt-3">{t.ownerPhoneHint || 'Ce numéro permet à vos contacts de recevoir le HELP même hors du rayon 1 km.'}</p>
         </section>
 
-        <section className="p97-glass rounded-3xl p-6">
+        <section className="p97-luxe-card rounded-3xl p-6">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.emergencyContacts}</h2>
           <div className="space-y-3 mb-6">
             {contacts.map(c => (
