@@ -27,9 +27,20 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <style>
+        :root {
+            color-scheme: dark;
+            --p97-bg: #050816;
+            --p97-card: rgba(15, 23, 42, 0.68);
+            --p97-line: rgba(148, 163, 184, 0.18);
+            --p97-red: #ff3b5f;
+            --p97-cyan: #22d3ee;
+        }
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0a0a0a;
+            background:
+                radial-gradient(circle at 20% 0%, rgba(34, 211, 238, 0.16), transparent 32rem),
+                radial-gradient(circle at 85% 18%, rgba(255, 59, 95, 0.18), transparent 28rem),
+                linear-gradient(135deg, #020617 0%, #050816 48%, #111827 100%);
             color: #ffffff;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
@@ -38,6 +49,55 @@
             width: 100%;
             height: 100%;
         }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: radial-gradient(circle at center, black, transparent 72%);
+        }
+        .p97-shell {
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(2, 6, 23, 0.96));
+            box-shadow: 0 30px 120px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.12);
+        }
+        .p97-glass {
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.76), rgba(2, 6, 23, 0.58));
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 24px 70px rgba(0,0,0,.34);
+            backdrop-filter: blur(22px);
+        }
+        .p97-aurora {
+            background: conic-gradient(from 180deg, rgba(34,211,238,.18), rgba(255,59,95,.22), rgba(99,102,241,.16), rgba(34,211,238,.18));
+            filter: blur(28px);
+        }
+        .p97-primary {
+            background: linear-gradient(135deg, #ff3b5f, #fb7185 48%, #22d3ee);
+            box-shadow: 0 16px 45px rgba(255, 59, 95, 0.28);
+        }
+        .p97-page {
+            background:
+                radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.16), transparent 18rem),
+                radial-gradient(circle at 88% 22%, rgba(255, 59, 95, 0.18), transparent 20rem),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.76), rgba(2, 6, 23, 0.92));
+        }
+        .p97-title {
+            background: linear-gradient(90deg, #ffffff 0%, #cffafe 48%, #fecdd3 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .p97-soft {
+            background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025));
+            border: 1px solid rgba(255,255,255,.12);
+        }
+        .p97-danger {
+            background: radial-gradient(circle at center, rgba(255, 59, 95, 0.35), transparent 62%), linear-gradient(135deg, #ef4444, #be123c);
+            box-shadow: 0 24px 70px rgba(239, 68, 68, 0.38);
+        }
+        .p97-scrollbar::-webkit-scrollbar { width: 4px; }
+        .p97-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 99px; }
         .emergency-pulse {
             animation: pulse-red 1.5s infinite;
         }

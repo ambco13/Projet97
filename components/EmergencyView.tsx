@@ -193,8 +193,8 @@ const EmergencyView: React.FC<Props> = ({ ownerName, ownerPhone, contacts, langu
   }, [contacts, language]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0a0000] flex flex-col p-8 overflow-hidden select-none">
-      <div className="absolute inset-0 bg-red-600/10 emergency-pulse pointer-events-none"></div>
+    <div className="fixed inset-0 z-50 flex flex-col p-6 sm:p-8 overflow-hidden select-none bg-[#12030a]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(239,68,68,0.38),transparent_34rem)] emergency-pulse pointer-events-none"></div>
       <div className="relative z-10 flex flex-col h-full">
         <header className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3">
@@ -204,25 +204,25 @@ const EmergencyView: React.FC<Props> = ({ ownerName, ownerPhone, contacts, langu
           <div className="text-white/40 font-mono text-xs">{seconds}s</div>
         </header>
 
-        <div className="flex-1 flex flex-col items-center overflow-y-auto custom-scrollbar pb-4">
-          <div className="w-full h-64 bg-neutral-900 rounded-[2rem] border border-white/10 mb-6 overflow-hidden relative shadow-2xl shrink-0">
+        <div className="flex-1 flex flex-col items-center overflow-y-auto p97-scrollbar pb-4">
+          <div className="w-full h-72 p97-glass rounded-[2rem] mb-6 overflow-hidden relative shadow-2xl shrink-0">
             {coords ? <MapView lat={coords.lat} lng={coords.lng} zoom={17} /> : <div className="w-full h-full flex items-center justify-center bg-neutral-950 text-[10px] font-black uppercase text-neutral-500">GPS...</div>}
           </div>
 
-          <button disabled={!coords || appMessageStatus === 'sending'} onClick={shareLocation} className="w-full bg-red-600 text-white font-black py-6 rounded-[1.5rem] shadow-[0_0_30px_rgba(239,68,68,0.4)] flex flex-col items-center justify-center gap-0.5 mb-6 animate-bounce disabled:opacity-20 shrink-0">
+          <button disabled={!coords || appMessageStatus === 'sending'} onClick={shareLocation} className="w-full p97-danger text-white font-black py-6 rounded-[1.5rem] flex flex-col items-center justify-center gap-0.5 mb-6 animate-bounce disabled:opacity-20 shrink-0">
             <div className="flex items-center gap-2"><Send size={20} /><span className="uppercase tracking-[0.2em] text-[12px]">{t.alertContacts}</span></div>
             <span className="text-[9px] opacity-60 uppercase font-black">{appMessageStatus === 'sending' ? (t.appMessageSending || 'Envoi du MP Projet 97') : t.sendingLocation}</span>
           </button>
 
           {appMessageStatus !== 'idle' && (
-            <div className="w-full mb-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-[10px] font-black uppercase tracking-widest text-white/70">
+            <div className="w-full mb-4 p97-glass rounded-2xl p-4 text-[10px] font-black uppercase tracking-widest text-white/70">
               {appMessageStatus === 'sending' && (t.appMessageSending || 'MP Projet 97 en cours avant SMS natif...')}
               {appMessageStatus === 'sent' && (t.appMessageSent || 'MP Projet 97 envoyé. Ouverture de Messages...')}
               {appMessageStatus === 'failed' && (t.appMessageFailed || "MP appli indisponible: ouverture de Messages quand même.")}
             </div>
           )}
 
-          <div className="w-full bg-white/5 p-5 rounded-[1.5rem] border border-white/5 mb-4">
+          <div className="w-full p97-glass p-5 rounded-[1.5rem] mb-4">
             <div className="flex items-center gap-3 mb-2">
               <Volume2 className="text-white/60" size={16} />
               <p className="text-white/60 font-black text-[10px] uppercase tracking-widest">{t.voiceDeterrence}</p>
@@ -237,7 +237,7 @@ const EmergencyView: React.FC<Props> = ({ ownerName, ownerPhone, contacts, langu
         </div>
 
         <div className="mt-auto pt-4 shrink-0">
-          <button onClick={onDeactivate} className="w-full bg-neutral-900/90 text-neutral-200 font-black py-5 rounded-[1.5rem] border border-white/5 flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
+          <button onClick={onDeactivate} className="w-full p97-soft text-neutral-100 font-black py-5 rounded-[1.5rem] flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
             <Lock size={18} className="text-neutral-500" />
             {t.deactivate}
           </button>
