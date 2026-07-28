@@ -119,7 +119,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
               <ShieldCheck className="text-white" size={32} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tighter">{t.appTitle}</h1>
+              <h1 className="p97-title text-3xl font-black tracking-tighter">{t.appTitle}</h1>
               <p className="text-red-500 font-black text-[10px] uppercase tracking-[0.3em]">{t.guardianProtocol}</p>
             </div>
           </div>
@@ -127,13 +127,13 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
       ) : (
         <div className="mb-10 relative min-h-14">
           <div>
-            <h2 className="text-3xl font-black text-white tracking-tighter">{t.settings}</h2>
+            <h2 className="p97-title text-3xl font-black tracking-tighter">{t.settings}</h2>
             <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t.protocolEdition}</p>
           </div>
           {onCancel && (
             <button
               onClick={onCancel}
-              className={`absolute top-0 ${isRtl ? 'left-0' : 'right-0'} p-3 bg-neutral-900 rounded-2xl text-neutral-400 hover:text-white transition-colors`}
+              className={`absolute top-0 ${isRtl ? 'left-0' : 'right-0'} p-3 p97-glass rounded-2xl text-neutral-400 hover:text-white transition-colors`}
             >
               {isRtl ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
             </button>
@@ -204,7 +204,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.emergencyContacts}</h2>
           <div className="space-y-3 mb-6">
             {contacts.map(c => (
-              <div key={c.id} className="flex items-center justify-between bg-neutral-950 p-4 rounded-2xl border border-white/5">
+              <div key={c.id} className="flex items-center justify-between bg-slate-950/70 p-4 rounded-2xl border border-white/10">
                 <div className="text-left px-2">
                   <p className="font-bold text-white text-sm">{c.name}</p>
                   <p className="text-[10px] font-mono text-neutral-500">{c.phone}</p>
