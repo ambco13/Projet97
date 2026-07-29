@@ -457,7 +457,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
         )}
         <button
           onClick={onToggleProtection}
-          className="w-full bg-neutral-800 text-neutral-100 font-black py-4 rounded-[1.2rem] border border-white/10 uppercase tracking-wider text-[11px]"
+          className={`w-full p97-toggle-action font-black py-4 rounded-[1.35rem] uppercase tracking-wider text-[11px] transition-all active:scale-[0.98] ${protectionEnabled ? 'text-neutral-100' : 'text-emerald-100 border-emerald-400/20'}`}
         >
           {protectionEnabled ? (t.disableProtection || 'Désactiver la protection') : (t.enableProtection || 'Activer la protection')}
         </button>

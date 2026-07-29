@@ -81,7 +81,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
       <div className={`absolute top-20 z-50 ${isRtl ? 'left-6' : 'right-6'}`}>
         <button 
           onClick={() => setShowLangMenu(!showLangMenu)}
-          className="flex items-center gap-2 bg-neutral-900/60 hover:bg-neutral-800/80 backdrop-blur-xl border border-white/10 px-3 py-2 rounded-2xl text-neutral-400 hover:text-white transition-all active:scale-95 shadow-xl"
+          className="p97-language-trigger flex items-center gap-2 px-3 py-2 rounded-full text-neutral-300 hover:text-white transition-all active:scale-95"
         >
           <Globe size={14} className="opacity-70" />
           <span className="text-[10px] font-black tracking-widest uppercase">
@@ -91,15 +91,15 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
         </button>
 
         {showLangMenu && (
-          <div className={`absolute top-full mt-4 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.6)] min-w-[160px] animate-in fade-in slide-in-from-top-2 duration-300 ${isRtl ? 'left-0' : 'right-0'}`}>
+          <div className={`p97-language-menu absolute top-full mt-3 rounded-2xl p-2 min-w-[170px] animate-in fade-in slide-in-from-top-2 duration-300 ${isRtl ? 'left-0' : 'right-0'}`}>
             {Object.entries(languages).map(([code, meta]) => (
               <button
                 key={code}
                 onClick={() => selectLanguage(code)}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all mb-1 last:mb-0 ${
+                className={`p97-language-item w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all mb-1 last:mb-0 ${
                   language === code 
-                    ? 'bg-red-600/20 text-red-500 border border-red-500/20 shadow-inner' 
-                    : 'text-neutral-500 hover:bg-white/5 hover:text-neutral-300'
+                    ? 'p97-language-item-active text-red-200'
+                    : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-4">
