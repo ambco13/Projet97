@@ -142,7 +142,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
       )}
 
       <div className="space-y-6">
-        <div className={`p97-luxe-card rounded-3xl p-4 border flex items-center justify-between transition-colors ${dbState === 'CONNECTED' ? 'border-blue-500/20' : 'border-white/5'}`}>
+        <div className={`p97-luxe-card p97-section flex items-center justify-between transition-all ${dbState === 'CONNECTED' ? 'border-blue-500/30' : 'border-white/10'}`}>
            <div className="flex items-center gap-3">
              <Cloud className={dbState === 'CONNECTED' ? 'text-blue-500' : 'text-neutral-500 animate-pulse'} size={20} />
              <div>
@@ -154,7 +154,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <section className={`rounded-3xl p-5 border transition-all duration-500 flex flex-col items-center ${
+          <section className={`p97-section border transition-all duration-500 flex flex-col items-center ${
             geoState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : geoState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'p97-luxe-card'
           }`}>
             <div className="flex justify-between w-full items-start mb-3">
@@ -170,7 +170,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
             </button>
           </section>
 
-          <section className={`rounded-3xl p-5 border transition-all duration-500 flex flex-col items-center ${
+          <section className={`p97-section border transition-all duration-500 flex flex-col items-center ${
             micState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : micState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'p97-luxe-card'
           }`}>
             <div className="flex justify-between w-full items-start mb-3">
@@ -187,24 +187,24 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
           </section>
         </div>
 
-        <section className="p97-luxe-card rounded-3xl p-6">
+        <section className="p97-luxe-card p97-section">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><Key size={16} className="text-red-500" />{t.pinCode}</h2>
           <input type="password" maxLength={4} inputMode="numeric" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            className="w-full bg-slate-950/70 border border-white/10 rounded-2xl p-4 text-center text-3xl font-black tracking-[1em] text-white focus:ring-2 focus:ring-red-500 outline-none transition-all" />
+            className="p97-field p-4 text-center text-3xl font-black tracking-[1em]" />
         </section>
 
-        <section className="p97-luxe-card rounded-3xl p-6">
+        <section className="p97-luxe-card p97-section">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.identityLabel}</h2>
-          <input type="text" placeholder={t.identityPlaceholder} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="w-full bg-slate-950/70 border border-white/10 rounded-2xl p-4 text-sm text-white mb-3" />
-          <input type="tel" placeholder={t.ownerPhonePlaceholder || '+33...'} value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} className="w-full bg-slate-950/70 border border-white/10 rounded-2xl p-4 text-sm text-white" />
+          <input type="text" placeholder={t.identityPlaceholder} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="p97-field p-4 text-sm mb-3" />
+          <input type="tel" placeholder={t.ownerPhonePlaceholder || '+33...'} value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} className="p97-field p-4 text-sm" />
           <p className="text-[10px] leading-relaxed text-neutral-500 font-semibold mt-3">{t.ownerPhoneHint || 'Ce numéro permet à vos contacts de recevoir le HELP même hors du rayon 1 km.'}</p>
         </section>
 
-        <section className="p97-luxe-card rounded-3xl p-6">
+        <section className="p97-luxe-card p97-section">
           <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.emergencyContacts}</h2>
           <div className="space-y-3 mb-6">
             {contacts.map(c => (
-              <div key={c.id} className="flex items-center justify-between bg-slate-950/70 p-4 rounded-2xl border border-white/10">
+              <div key={c.id} className="p97-mini-card flex items-center justify-between p-4 rounded-2xl transition-all hover:border-red-400/30">
                 <div className="text-left px-2">
                   <p className="font-bold text-white text-sm">{c.name}</p>
                   <p className="text-[10px] font-mono text-neutral-500">{c.phone}</p>
@@ -215,15 +215,15 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
           </div>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder={t.contactNamePlaceholder} value={newName} onChange={(e) => setNewName(e.target.value)} className="bg-slate-950/70 border border-white/10 rounded-xl p-3 text-sm text-white" />
-              <input type="tel" placeholder={t.contactPhonePlaceholder} value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="bg-slate-950/70 border border-white/10 rounded-xl p-3 text-sm text-white" />
+              <input type="text" placeholder={t.contactNamePlaceholder} value={newName} onChange={(e) => setNewName(e.target.value)} className="p97-field p-3 text-sm" />
+              <input type="tel" placeholder={t.contactPhonePlaceholder} value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="p97-field p-3 text-sm" />
             </div>
             <p className="text-[10px] leading-relaxed text-neutral-500 font-semibold">{t.contactDeliveryHint}</p>
-            <button onClick={addContact} className="w-full bg-white/5 border border-white/10 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest">{t.add}</button>
+            <button onClick={addContact} className="w-full p97-mini-card text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-[0.98]">{t.add}</button>
           </div>
         </section>
 
-        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), ownerPhone.trim(), contacts, pin, guardianNetwork, language)} className="w-full p97-primary text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all disabled:opacity-20 uppercase tracking-widest text-sm">
+        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), ownerPhone.trim(), contacts, pin, guardianNetwork, language)} className="w-full p97-sos-luxe text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all active:scale-[0.98] disabled:opacity-20 uppercase tracking-widest text-sm">
           {initialConfig?.pin ? t.saveChanges : t.activateProtection}
         </button>
       </div>

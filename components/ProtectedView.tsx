@@ -377,7 +377,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
       </div>
 
       <div className="w-full grid grid-cols-2 gap-4 mb-8">
-        <div className="p97-luxe-card p-5 rounded-[2rem] flex flex-col items-center text-center">
+        <div className="p97-luxe-card p97-section flex flex-col items-center text-center">
           <div className="flex items-center justify-center mb-3 relative">
             <Mic size={20} className={isListening ? 'text-green-500 animate-pulse' : 'text-neutral-600'} />
             {isListening && (
@@ -391,7 +391,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
           <p className="text-[11px] font-black text-white truncate w-full uppercase">{protectionEnabled ? t.listening : (t.sleeping || 'PAUSE')}</p>
         </div>
 
-        <div className="p97-luxe-card p-5 rounded-[2rem] flex flex-col items-center text-center">
+        <div className="p97-luxe-card p97-section flex flex-col items-center text-center">
           <MapPin size={20} className="text-blue-500 mb-3" />
           <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1">{t.gpsMesh}</p>
           <p className="text-[11px] font-black text-white uppercase">{guardianNetwork ? t.community : t.private}</p>
@@ -435,8 +435,8 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
           </div>
         )}
 
-        <div className="p97-luxe-card p-5 rounded-[1.5rem] flex items-center gap-4">
-          <div className="bg-red-500/10 p-3 rounded-xl shrink-0">
+        <div className="p97-luxe-card p97-section flex items-center gap-4">
+          <div className="p97-icon-tile p-3 rounded-2xl shrink-0">
             <Zap className="text-red-500" size={18} />
           </div>
           <div className="flex-1 min-w-0">

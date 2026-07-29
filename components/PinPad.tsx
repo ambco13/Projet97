@@ -32,8 +32,8 @@ const PinPad: React.FC<Props> = ({ correctPin, language, onSuccess, onCancel, tr
         <p className="text-neutral-500 text-xs font-bold uppercase mb-8 tracking-[0.2em]">{t.enterPin}</p>
         <div className={`flex gap-6 mb-16 ${error ? 'animate-shake' : ''}`}>{[0, 1, 2, 3].map(i => (<div key={i} className={`w-4 h-4 rounded-full border-2 transition-all ${input.length > i ? (error ? 'bg-red-500 border-red-500' : 'bg-white border-white scale-125') : 'border-neutral-800'}`} />))}</div>
         <div className="grid grid-cols-3 gap-6 w-full max-w-[280px]">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(n => (<button key={n} onClick={() => handlePress(n)} className="aspect-square flex items-center justify-center rounded-[2rem] p97-luxe-card text-white text-2xl font-bold active:bg-white active:text-black transition-all">{n}</button>))}
-          <div /><button onClick={() => handlePress('0')} className="aspect-square flex items-center justify-center rounded-[2rem] p97-luxe-card text-white text-2xl font-bold active:bg-white active:text-black transition-all">0</button>
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(n => (<button key={n} onClick={() => handlePress(n)} className="aspect-square flex items-center justify-center rounded-[2rem] p97-luxe-card text-white text-2xl font-bold active:bg-white active:text-black active:scale-95 transition-all">{n}</button>))}
+          <div /><button onClick={() => handlePress('0')} className="aspect-square flex items-center justify-center rounded-[2rem] p97-luxe-card text-white text-2xl font-bold active:bg-white active:text-black active:scale-95 transition-all">0</button>
           <button onClick={() => setInput(input.slice(0, -1))} className="aspect-square flex items-center justify-center rounded-full text-neutral-500 active:text-white transition-colors"><Delete size={28} /></button>
         </div>
       </div>

@@ -111,7 +111,7 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
         </button>
       </div>
 
-      <div className="mb-4 p97-luxe-card rounded-3xl p-3">
+      <div className="mb-4 p97-luxe-card p97-section p-3">
         <div className="grid grid-cols-3 gap-2">
           {allFilters.filter((filter) => filter !== 'ALL').map((type) => (
             <button
@@ -162,7 +162,7 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
               <button
                 key={log.id}
                 onClick={() => setSelectedLog(log)}
-                className="text-left p97-luxe-card rounded-2xl p-3 min-h-28 hover:border-red-500/40 hover:-translate-y-0.5 transition-all"
+                className="text-left p97-mini-card rounded-[1.4rem] p-4 min-h-32 hover:border-red-500/40 hover:-translate-y-1 transition-all"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-mono text-neutral-500">#{log.id.slice(-4)}</span>
@@ -200,19 +200,19 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
               <button
                 onClick={() => setSelectedMap(selectedLog)}
                 disabled={!selectedLog.coordinates}
-                className="bg-white/5 disabled:opacity-40 py-3 rounded-xl text-[9px] font-black uppercase"
+                className="p97-mini-card disabled:opacity-40 py-3 rounded-xl text-[9px] font-black uppercase"
               >
                 <MapPin size={12} className="mx-auto mb-1" />{t.map}
               </button>
               <button
                 onClick={() => shareLog(selectedLog)}
-                className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase"
+                className="p97-mini-card py-3 rounded-xl text-[9px] font-black uppercase"
               >
                 <Share2 size={12} className="mx-auto mb-1" />{t.share}
               </button>
               <button
                 onClick={() => downloadProof(selectedLog)}
-                className="bg-red-600/10 py-3 rounded-xl text-[9px] font-black uppercase"
+                className="p97-mini-card py-3 rounded-xl text-[9px] font-black uppercase text-red-200"
               >
                 <Download size={12} className="mx-auto mb-1" />{t.proof}
               </button>
