@@ -385,11 +385,11 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="p97-shell p97-luxe-bg flex flex-col h-screen max-w-md mx-auto overflow-hidden relative border-x border-white/10 sm:my-4 sm:h-[calc(100vh-2rem)] sm:rounded-[2.2rem]"
+      className="p97-shell p97-luxe-bg flex flex-col h-screen max-w-md mx-auto overflow-hidden relative border-x border-[var(--p97-line)] sm:my-4 sm:h-[calc(100vh-2rem)] sm:rounded-[var(--p97-r-xl)]"
       dir={langMeta.dir}
     >
       <div className={`absolute inset-0 transition-opacity duration-1000 pointer-events-none z-0 ${state === 'EMERGENCY' ? 'opacity-100' : 'opacity-0'}`}>
-         <div className="absolute inset-0 bg-red-950/20 emergency-pulse" />
+         <div className="absolute inset-0 bg-[var(--p97-accent-soft)] emergency-pulse" />
       </div>
 
       <div
@@ -441,19 +441,27 @@ const App: React.FC = () => {
       </div>
 
       {showNav && (
-        <nav className="absolute bottom-4 left-4 right-4 p97-luxe-card rounded-[1.5rem] px-4 flex justify-around items-center z-30 h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.35)]">
-          <button onClick={() => { setActiveTab('PROTECTED'); setState('PROTECTED'); }} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'PROTECTED' ? 'text-red-500 scale-110' : 'text-neutral-500 hover:text-neutral-300'}`}>
-            <Shield size={22} fill={activeTab === 'PROTECTED' ? 'currentColor' : 'none'} />
-            <span className="text-[9px] font-black uppercase tracking-widest">{t.active}</span>
-          </button>
-          <button onClick={() => setActiveTab('HISTORY')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'HISTORY' ? 'text-red-500 scale-110' : 'text-neutral-500 hover:text-neutral-300'}`}>
-            <History size={22} />
-            <span className="text-[9px] font-black uppercase tracking-widest">{t.logs}</span>
-          </button>
-          <button onClick={() => setActiveTab('SETUP')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'SETUP' ? 'text-red-500 scale-110' : 'text-neutral-500 hover:text-neutral-300'}`}>
-            <Settings size={22} />
-            <span className="text-[9px] font-black uppercase tracking-widest">{t.settings}</span>
-          </button>
+        <nav className="p97-nav absolute bottom-4 left-4 right-4 px-2 flex justify-around items-center z-30 h-[4.5rem]">
+          {([
+            { tab: 'PROTECTED' as const, Icon: Shield, label: t.active },
+            { tab: 'HISTORY' as const, Icon: History, label: t.logs },
+            { tab: 'SETUP' as const, Icon: Settings, label: t.settings },
+          ]).map(({ tab, Icon, label }) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => { setActiveTab(tab); if (tab === 'PROTECTED') setState('PROTECTED'); }}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex flex-1 flex-col items-center justify-center gap-1.5 h-full rounded-[var(--p97-r-md)] transition-colors duration-200 ${
+                  isActive ? 'text-[var(--p97-accent)]' : 'text-[var(--p97-text-3)] hover:text-[var(--p97-text-2)]'
+                }`}
+              >
+                <Icon size={21} strokeWidth={isActive ? 2.4 : 1.9} />
+                <span className="text-[10px] font-semibold tracking-wide">{label}</span>
+              </button>
+            );
+          })}
         </nav>
       )}
     </div>

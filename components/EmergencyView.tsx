@@ -194,58 +194,65 @@ const EmergencyView: React.FC<Props> = ({ ownerName, ownerPhone, contacts, langu
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col p-6 sm:p-8 overflow-hidden select-none p97-danger-room">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(239,68,68,0.38),transparent_34rem)] emergency-pulse pointer-events-none"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,var(--p97-accent-soft),transparent_32rem)] emergency-pulse pointer-events-none"></div>
       <div className="relative z-10 flex flex-col h-full">
-        <header className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
-            <span className="text-red-500 font-black tracking-[0.3em] text-[10px] uppercase">{t.sosActive}</span>
+        <header className="flex justify-between items-center mb-5">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--p97-accent)' }} />
+            <span className="text-[13px] font-semibold uppercase tracking-[0.1em]" style={{ color: 'var(--p97-accent)' }}>{t.sosActive}</span>
           </div>
-          <div className="text-white/40 font-mono text-xs">{seconds}s</div>
+          <div className="font-mono text-sm tabular-nums" style={{ color: 'var(--p97-text-3)' }}>{seconds}s</div>
         </header>
 
-        <div className="flex-1 flex flex-col items-center overflow-y-auto p97-scrollbar pb-4">
-          <div className="w-full h-72 p97-luxe-card rounded-[1.5rem] mb-6 overflow-hidden relative shadow-2xl shrink-0">
-            {coords ? <MapView lat={coords.lat} lng={coords.lng} zoom={17} /> : <div className="w-full h-full flex items-center justify-center bg-neutral-950 text-[10px] font-black uppercase text-neutral-500">GPS...</div>}
+        <div className="flex-1 flex flex-col items-center overflow-y-auto p97-scrollbar pb-4 gap-4">
+          <div className="w-full h-64 p97-luxe-card overflow-hidden relative shrink-0">
+            {coords
+              ? <MapView lat={coords.lat} lng={coords.lng} zoom={17} />
+              : <div className="w-full h-full flex items-center justify-center text-[13px]" style={{ color: 'var(--p97-text-3)' }}>Recherche GPS…</div>}
           </div>
 
-          <button disabled={!coords || appMessageStatus === 'sending'} onClick={shareLocation} className="w-full p97-sos-luxe text-white font-black py-6 rounded-[1.5rem] flex flex-col items-center justify-center gap-0.5 mb-6 animate-bounce disabled:opacity-20 shrink-0">
-            <div className="flex items-center gap-2"><Send size={20} /><span className="uppercase tracking-[0.2em] text-[12px]">{t.alertContacts}</span></div>
-            <span className="text-[9px] opacity-60 uppercase font-black">{appMessageStatus === 'sending' ? (t.appMessageSending || 'Envoi du MP Projet 97') : t.sendingLocation}</span>
+          <button
+            disabled={!coords || appMessageStatus === 'sending'}
+            onClick={shareLocation}
+            className="w-full p97-sos-luxe py-5 flex flex-col items-center justify-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed shrink-0 active:scale-[0.99]"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.08em]">
+              <Send size={18} />{t.alertContacts}
+            </span>
+            <span className="text-xs opacity-75 font-normal normal-case">
+              {appMessageStatus === 'sending' ? (t.appMessageSending || 'Envoi du message Projet 97…') : t.sendingLocation}
+            </span>
           </button>
 
           {appMessageStatus !== 'idle' && (
-            <div className="w-full mb-4 p97-luxe-card rounded-2xl p-4 text-[10px] font-black uppercase tracking-widest text-white/70">
-              {appMessageStatus === 'sending' && (t.appMessageSending || 'MP Projet 97 en cours avant SMS natif...')}
-              {appMessageStatus === 'sent' && (t.appMessageSent || 'MP Projet 97 envoyé. Ouverture de Messages...')}
-              {appMessageStatus === 'failed' && (t.appMessageFailed || "MP appli indisponible: ouverture de Messages quand même.")}
+            <div role="status" className="w-full p97-luxe-card p97-section text-[13px]" style={{ color: 'var(--p97-text-2)' }}>
+              {appMessageStatus === 'sending' && (t.appMessageSending || 'Message Projet 97 en cours avant SMS natif…')}
+              {appMessageStatus === 'sent' && (t.appMessageSent || 'Message Projet 97 envoyé. Ouverture de Messages…')}
+              {appMessageStatus === 'failed' && (t.appMessageFailed || 'Message appli indisponible : ouverture de Messages quand même.')}
             </div>
           )}
 
-          <div className="w-full p97-luxe-card p-5 rounded-[1.5rem] mb-4">
-            <div className="flex items-center gap-3 mb-2">
-              <Volume2 className="text-white/60" size={16} />
-              <p className="text-white/60 font-black text-[10px] uppercase tracking-widest">{t.voiceDeterrence}</p>
+          <div className="w-full p97-luxe-card p97-section">
+            <div className="flex items-center gap-2.5 mb-2">
+              <Volume2 size={16} style={{ color: 'var(--p97-text-3)' }} />
+              <p className="p97-eyebrow">{t.voiceDeterrence}</p>
             </div>
-            <p className="text-neutral-400 text-[11px] font-medium leading-relaxed italic italic-red-selection">"{t.voiceMsg}"</p>
+            <p className="text-[13px] leading-relaxed italic" style={{ color: 'var(--p97-text-2)' }}>« {t.voiceMsg} »</p>
             {nearbyGuardians !== null && (
-              <p className="text-[10px] text-blue-300 font-semibold mt-3">
+              <p className="text-xs font-medium mt-3" style={{ color: 'var(--p97-safe)' }}>
                 {nearbyGuardians} {t.nearbyGuardians}
               </p>
             )}
           </div>
         </div>
 
-        <div className="mt-auto pt-4 shrink-0">
-          <button onClick={onDeactivate} className="w-full p97-luxe-card text-neutral-100 font-black py-5 rounded-[1.5rem] flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
-            <Lock size={18} className="text-neutral-500" />
+        <div className="mt-auto pt-4 shrink-0" style={{ paddingBottom: 'var(--p97-safe-bottom)' }}>
+          <button onClick={onDeactivate} className="w-full p97-toggle-action py-4 flex items-center justify-center gap-2.5 text-sm font-medium active:scale-[0.99]">
+            <Lock size={17} />
             {t.deactivate}
           </button>
         </div>
       </div>
-      <style>{`
-        .italic-red-selection::selection { background: #dc2626; color: white; }
-      `}</style>
     </div>
   );
 };
