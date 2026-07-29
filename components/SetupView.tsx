@@ -81,33 +81,33 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
       <div className={`absolute top-20 z-50 ${isRtl ? 'left-6' : 'right-6'}`}>
         <button 
           onClick={() => setShowLangMenu(!showLangMenu)}
-          className="p97-language-trigger flex items-center gap-2 px-3 py-2 rounded-full text-neutral-300 hover:text-white transition-all active:scale-95"
+          aria-expanded={showLangMenu}
+          className="p97-language-trigger flex items-center gap-2 px-3 py-2 rounded-full transition-all active:scale-95"
         >
-          <Globe size={14} className="opacity-70" />
-          <span className="text-[10px] font-black tracking-widest uppercase">
+          <Globe size={14} />
+          <span className="text-xs font-medium uppercase tracking-wide">
             {(languages[language] || languages.fr).shortName}
           </span>
           <ChevronDown size={12} className={`transition-transform duration-300 ${showLangMenu ? 'rotate-180' : ''}`} />
         </button>
 
         {showLangMenu && (
-          <div className={`p97-language-menu absolute top-full mt-3 rounded-2xl p-2 min-w-[170px] animate-in fade-in slide-in-from-top-2 duration-300 ${isRtl ? 'left-0' : 'right-0'}`}>
-            {Object.entries(languages).map(([code, meta]) => (
-              <button
-                key={code}
-                onClick={() => selectLanguage(code)}
-                className={`p97-language-item w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all mb-1 last:mb-0 ${
-                  language === code 
-                    ? 'p97-language-item-active text-red-200'
-                    : 'text-neutral-400 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-lg leading-none">{meta.flag}</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest">{meta.name}</span>
-                </div>
-              </button>
-            ))}
+          <div className={`p97-language-menu absolute top-full mt-2 p-1.5 min-w-[180px] animate-in fade-in slide-in-from-top-1 duration-200 ${isRtl ? 'left-0' : 'right-0'}`}>
+            {Object.entries(languages).map(([code, meta]) => {
+              const isActive = language === code;
+              return (
+                <button
+                  key={code}
+                  onClick={() => selectLanguage(code)}
+                  aria-current={isActive ? 'true' : undefined}
+                  className={`p97-language-item w-full flex items-center gap-3 px-3 py-2.5 transition-all ${isActive ? 'p97-language-item-active' : 'hover:bg-white/5'}`}
+                  style={{ color: isActive ? 'var(--p97-accent)' : 'var(--p97-text-2)' }}
+                >
+                  <span className="text-base leading-none">{meta.flag}</span>
+                  <span className="text-[13px] font-medium">{meta.name}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -115,25 +115,27 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
       {!hideHeader ? (
         <div className="flex justify-between items-start mb-10">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-gradient-to-br from-red-600 to-red-800 rounded-2xl shadow-2xl shadow-red-950/40">
-              <ShieldCheck className="text-white" size={32} />
+            <div className="p97-icon-tile p-3.5">
+              <ShieldCheck size={28} style={{ color: 'var(--p97-accent)' }} strokeWidth={1.8} />
             </div>
             <div>
-              <h1 className="p97-luxe-title text-3xl font-black tracking-tighter">{t.appTitle}</h1>
-              <p className="text-red-500 font-black text-[10px] uppercase tracking-[0.3em]">{t.guardianProtocol}</p>
+              <h1 className="p97-luxe-title text-2xl">{t.appTitle}</h1>
+              <p className="p97-eyebrow mt-1">{t.guardianProtocol}</p>
             </div>
           </div>
         </div>
       ) : (
         <div className="mb-10 relative min-h-14">
           <div>
-            <h2 className="p97-luxe-title text-3xl font-black tracking-tighter">{t.settings}</h2>
-            <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t.protocolEdition}</p>
+            <h2 className="p97-luxe-title text-2xl">{t.settings}</h2>
+            <p className="p97-eyebrow mt-1">{t.protocolEdition}</p>
           </div>
           {onCancel && (
             <button
               onClick={onCancel}
-              className={`absolute top-0 ${isRtl ? 'left-0' : 'right-0'} p-3 p97-luxe-card rounded-2xl text-neutral-400 hover:text-white transition-colors`}
+              aria-label={t.settings}
+              className={`absolute top-0 ${isRtl ? 'left-0' : 'right-0'} p-3 p97-luxe-card transition-colors`}
+              style={{ color: 'var(--p97-text-2)' }}
             >
               {isRtl ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
             </button>
@@ -142,74 +144,90 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
       )}
 
       <div className="space-y-6">
-        <div className={`p97-luxe-card p97-section flex items-center justify-between transition-all ${dbState === 'CONNECTED' ? 'border-blue-500/30' : 'border-white/10'}`}>
+        <div className="p97-luxe-card p97-section flex items-center justify-between">
            <div className="flex items-center gap-3">
-             <Cloud className={dbState === 'CONNECTED' ? 'text-blue-500' : 'text-neutral-500 animate-pulse'} size={20} />
+             <Cloud
+               size={20}
+               style={{ color: dbState === 'CONNECTED' ? 'var(--p97-safe)' : 'var(--p97-text-3)' }}
+               className={dbState === 'CONNECTED' ? '' : 'animate-pulse'}
+             />
              <div>
-               <p className="text-[9px] font-black text-neutral-500 uppercase">{t.cloudStatus}</p>
-               <p className="text-white text-[11px] font-bold">{dbState === 'CONNECTED' ? t.cloudConnected : t.cloudSyncing}</p>
+               <p className="p97-eyebrow">{t.cloudStatus}</p>
+               <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--p97-text)' }}>
+                 {dbState === 'CONNECTED' ? t.cloudConnected : t.cloudSyncing}
+               </p>
              </div>
            </div>
-           {dbState === 'CONNECTED' && <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>}
+           {dbState === 'CONNECTED' && <span className="w-2 h-2 rounded-full" style={{ background: 'var(--p97-safe)' }} />}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <section className={`p97-section border transition-all duration-500 flex flex-col items-center ${
-            geoState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : geoState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'p97-luxe-card'
-          }`}>
-            <div className="flex justify-between w-full items-start mb-3">
-              <h2 className="text-[10px] font-black text-white uppercase flex items-center gap-2">
-                <MapPin size={14} className={geoState === 'SUCCESS' ? 'text-green-500' : 'text-red-500'} />
-                GPS
-              </h2>
-            </div>
-            <button onClick={testGeo} className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest ${
-              geoState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 text-white'
-            }`}>
-              {geoState === 'SUCCESS' ? 'OK' : 'ACTIVER'}
-            </button>
-          </section>
-
-          <section className={`p97-section border transition-all duration-500 flex flex-col items-center ${
-            micState === 'SUCCESS' ? 'bg-green-500/5 border-green-500/20' : micState === 'ERROR' ? 'bg-red-500/10 border-red-500/30' : 'p97-luxe-card'
-          }`}>
-            <div className="flex justify-between w-full items-start mb-3">
-              <h2 className="text-[10px] font-black text-white uppercase flex items-center gap-2">
-                <Mic size={14} className={micState === 'SUCCESS' ? 'text-green-500' : 'text-red-500'} />
-                MICRO
-              </h2>
-            </div>
-            <button onClick={testMic} className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest ${
-              micState === 'SUCCESS' ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-white/5 text-white'
-            }`}>
-              {micState === 'SUCCESS' ? 'OK' : 'ACTIVER'}
-            </button>
-          </section>
+          {([
+            { key: 'gps', state: geoState, Icon: MapPin, label: 'GPS', test: testGeo },
+            { key: 'mic', state: micState, Icon: Mic, label: 'Micro', test: testMic },
+          ]).map(({ key, state, Icon, label, test }) => {
+            const ok = state === 'SUCCESS';
+            const failed = state === 'ERROR';
+            return (
+              <section
+                key={key}
+                className="p97-luxe-card p97-section flex flex-col gap-3"
+                style={ok ? { borderColor: 'var(--p97-safe-line)' } : failed ? { borderColor: 'var(--p97-accent-line)' } : undefined}
+              >
+                <h2 className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--p97-text)' }}>
+                  <Icon size={15} style={{ color: ok ? 'var(--p97-safe)' : failed ? 'var(--p97-accent)' : 'var(--p97-text-3)' }} />
+                  {label}
+                </h2>
+                <button
+                  onClick={test}
+                  className="w-full py-2.5 rounded-[var(--p97-r-sm)] text-[13px] font-medium transition-colors"
+                  style={ok
+                    ? { background: 'var(--p97-safe-soft)', color: 'var(--p97-safe)', border: '1px solid var(--p97-safe-line)' }
+                    : { background: 'var(--p97-surface-2)', color: 'var(--p97-text)', border: '1px solid var(--p97-line)' }}
+                >
+                  {ok ? 'Actif' : 'Activer'}
+                </button>
+              </section>
+            );
+          })}
         </div>
 
         <section className="p97-luxe-card p97-section">
-          <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><Key size={16} className="text-red-500" />{t.pinCode}</h2>
-          <input type="password" maxLength={4} inputMode="numeric" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            className="p97-field p-4 text-center text-3xl font-black tracking-[1em]" />
+          <h2 className="flex items-center gap-2 text-sm font-semibold mb-4" style={{ color: 'var(--p97-text)' }}>
+            <Key size={16} style={{ color: 'var(--p97-text-3)' }} />{t.pinCode}
+          </h2>
+          <input type="password" maxLength={4} inputMode="numeric" placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            className="p97-field p-4 text-center text-2xl font-semibold tracking-[0.6em]" />
         </section>
 
         <section className="p97-luxe-card p97-section">
-          <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.identityLabel}</h2>
-          <input type="text" placeholder={t.identityPlaceholder} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="p97-field p-4 text-sm mb-3" />
-          <input type="tel" placeholder={t.ownerPhonePlaceholder || '+33...'} value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} className="p97-field p-4 text-sm" />
-          <p className="text-[10px] leading-relaxed text-neutral-500 font-semibold mt-3">{t.ownerPhoneHint || 'Ce numéro permet à vos contacts de recevoir le HELP même hors du rayon 1 km.'}</p>
+          <h2 className="flex items-center gap-2 text-sm font-semibold mb-4" style={{ color: 'var(--p97-text)' }}>
+            <UserPlus size={16} style={{ color: 'var(--p97-text-3)' }} />{t.identityLabel}
+          </h2>
+          <input type="text" placeholder={t.identityPlaceholder} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="p97-field p-3.5 text-sm mb-3" />
+          <input type="tel" placeholder={t.ownerPhonePlaceholder || '+33...'} value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} className="p97-field p-3.5 text-sm" />
+          <p className="text-xs leading-relaxed mt-3" style={{ color: 'var(--p97-text-3)' }}>{t.ownerPhoneHint || 'Ce numéro permet à vos contacts de recevoir le HELP même hors du rayon 1 km.'}</p>
         </section>
 
         <section className="p97-luxe-card p97-section">
-          <h2 className="text-sm font-black text-white mb-4 uppercase flex items-center gap-2"><UserPlus size={16} className="text-red-500" />{t.emergencyContacts}</h2>
-          <div className="space-y-3 mb-6">
+          <h2 className="flex items-center gap-2 text-sm font-semibold mb-4" style={{ color: 'var(--p97-text)' }}>
+            <UserPlus size={16} style={{ color: 'var(--p97-text-3)' }} />{t.emergencyContacts}
+          </h2>
+          <div className="space-y-2 mb-5">
             {contacts.map(c => (
-              <div key={c.id} className="p97-mini-card flex items-center justify-between p-4 rounded-2xl transition-all hover:border-red-400/30">
-                <div className="text-left px-2">
-                  <p className="font-bold text-white text-sm">{c.name}</p>
-                  <p className="text-[10px] font-mono text-neutral-500">{c.phone}</p>
+              <div key={c.id} className="p97-mini-card flex items-center justify-between p-3.5">
+                <div className="text-left min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--p97-text)' }}>{c.name}</p>
+                  <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--p97-text-3)' }}>{c.phone}</p>
                 </div>
-                <button onClick={() => setContacts(contacts.filter(x => x.id !== c.id))} className="text-neutral-600 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                <button
+                  onClick={() => setContacts(contacts.filter(x => x.id !== c.id))}
+                  aria-label={`${t.delete || 'Supprimer'} ${c.name}`}
+                  className="p-2 shrink-0 transition-colors hover:text-[var(--p97-accent)]"
+                  style={{ color: 'var(--p97-text-3)' }}
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             ))}
           </div>
@@ -218,12 +236,12 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
               <input type="text" placeholder={t.contactNamePlaceholder} value={newName} onChange={(e) => setNewName(e.target.value)} className="p97-field p-3 text-sm" />
               <input type="tel" placeholder={t.contactPhonePlaceholder} value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="p97-field p-3 text-sm" />
             </div>
-            <p className="text-[10px] leading-relaxed text-neutral-500 font-semibold">{t.contactDeliveryHint}</p>
-            <button onClick={addContact} className="w-full p97-mini-card text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-[0.98]">{t.add}</button>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--p97-text-3)' }}>{t.contactDeliveryHint}</p>
+            <button onClick={addContact} className="w-full p97-mini-card py-3 text-[13px] font-medium transition-all active:scale-[0.99]" style={{ color: 'var(--p97-text)' }}>{t.add}</button>
           </div>
         </section>
 
-        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), ownerPhone.trim(), contacts, pin, guardianNetwork, language)} className="w-full p97-sos-luxe text-white font-black py-5 rounded-[1.5rem] shadow-2xl transition-all active:scale-[0.98] disabled:opacity-20 uppercase tracking-widest text-sm">
+        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), ownerPhone.trim(), contacts, pin, guardianNetwork, language)} className="w-full p97-sos-luxe py-4 text-sm font-semibold transition-all active:scale-[0.99] disabled:opacity-30 disabled:cursor-not-allowed">
           {initialConfig?.pin ? t.saveChanges : t.activateProtection}
         </button>
       </div>

@@ -37,8 +37,8 @@ const MapView: React.FC<Props> = ({ lat, lng, zoom = 15 }) => {
         className: 'custom-div-icon',
         html: `
           <div class="relative flex items-center justify-center">
-            <div class="absolute w-8 h-8 bg-red-500/30 rounded-full animate-ping"></div>
-            <div class="relative w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-[0_0_15px_rgba(239,68,68,1)]"></div>
+            <div class="absolute w-8 h-8 rounded-full animate-ping" style="background: var(--p97-accent-soft)"></div>
+            <div class="relative w-4 h-4 rounded-full border-2 border-white" style="background: var(--p97-accent)"></div>
           </div>
         `,
         iconSize: [32, 32],

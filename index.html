@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Projet 97">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#08080a">
     <meta name="description" content="Système de sécurité personnel intelligent.">
     
     <link rel="manifest" href="manifest.json">
@@ -27,203 +27,319 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <style>
+        /* ============================================================
+           PROJET 97 — DESIGN TOKENS
+           Mono-accent corail. Le vert et l'ambre sont sémantiques
+           (état), jamais décoratifs. Aucune autre teinte.
+           ============================================================ */
         :root {
             color-scheme: dark;
-            --p97-bg: #050816;
-            --p97-card: rgba(15, 23, 42, 0.68);
-            --p97-line: rgba(148, 163, 184, 0.18);
-            --p97-red: #ff3b5f;
-            --p97-cyan: #22d3ee;
+
+            /* Surfaces — échelle d'élévation à 4 niveaux */
+            --p97-bg:        #08080a;
+            --p97-surface-1: #101013;
+            --p97-surface-2: #17171c;
+            --p97-surface-3: #1f1f25;
+
+            /* Lignes */
+            --p97-line:        rgba(255, 255, 255, 0.08);
+            --p97-line-strong: rgba(255, 255, 255, 0.14);
+
+            /* Texte — contrastes vérifiés sur --p97-surface-1 */
+            --p97-text:   #f4f4f5;  /* 17.4:1 */
+            --p97-text-2: #a1a1aa;  /*  7.4:1 */
+            --p97-text-3: #71717a;  /*  4.0:1 — décoratif / non essentiel */
+
+            /* Accent unique : corail. Sert l'action ET l'urgence. */
+            --p97-accent:       #ee5a4d;
+            --p97-accent-hover: #f4705f;
+            --p97-accent-press: #d94a3e;
+            --p97-accent-soft:  rgba(238, 90, 77, 0.12);
+            --p97-accent-line:  rgba(238, 90, 77, 0.32);
+
+            /* États sémantiques — usage strictement fonctionnel */
+            --p97-safe:      #34d399;
+            --p97-safe-soft: rgba(52, 211, 153, 0.10);
+            --p97-safe-line: rgba(52, 211, 153, 0.22);
+            --p97-warn:      #fbbf24;
+
+            /* Rayons — échelle à 4 crans, plus de valeurs ad hoc */
+            --p97-r-sm: 0.75rem;
+            --p97-r-md: 1rem;
+            --p97-r-lg: 1.5rem;
+            --p97-r-xl: 2rem;
+
+            /* Élévation */
+            --p97-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+            --p97-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.36);
+            --p97-shadow-lg: 0 20px 56px rgba(0, 0, 0, 0.46);
+
+            /* Mouvement */
+            --p97-ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --p97-dur:  180ms;
+
+            /* Zones sûres PWA (encoche / home indicator) */
+            --p97-safe-top:    env(safe-area-inset-top, 0px);
+            --p97-safe-bottom: env(safe-area-inset-bottom, 0px);
         }
+
+        /* ============================================================
+           BASE
+           ============================================================ */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background: #000;
-            color: #ffffff;
+            color: var(--p97-text);
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            font-feature-settings: 'cv11', 'ss01';
             user-select: none;
             position: fixed;
             width: 100%;
             height: 100%;
         }
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            background: none;
-        }
-        .p97-shell {
-            background: #050505;
-            box-shadow: 0 30px 80px rgba(0,0,0,.48);
-        }
-        .p97-glass {
-            background: linear-gradient(145deg, rgba(15, 23, 42, 0.76), rgba(2, 6, 23, 0.58));
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 24px 70px rgba(0,0,0,.34);
-            backdrop-filter: blur(22px);
-        }
-        .p97-aurora {
-            background: conic-gradient(from 180deg, rgba(34,211,238,.18), rgba(255,59,95,.22), rgba(99,102,241,.16), rgba(34,211,238,.18));
-            filter: blur(28px);
-        }
-        .p97-primary {
-            background: linear-gradient(135deg, #ff3b5f, #fb7185 48%, #22d3ee);
-            box-shadow: 0 16px 45px rgba(255, 59, 95, 0.28);
-        }
-        .p97-page {
-            background:
-                radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.16), transparent 18rem),
-                radial-gradient(circle at 88% 22%, rgba(255, 59, 95, 0.18), transparent 20rem),
-                linear-gradient(180deg, rgba(15, 23, 42, 0.76), rgba(2, 6, 23, 0.92));
-        }
-        .p97-title {
-            background: linear-gradient(90deg, #ffffff 0%, #cffafe 48%, #fecdd3 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .p97-soft {
-            background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025));
-            border: 1px solid rgba(255,255,255,.12);
-        }
-        .p97-danger {
-            background: radial-gradient(circle at center, rgba(255, 59, 95, 0.35), transparent 62%), linear-gradient(135deg, #ef4444, #be123c);
-            box-shadow: 0 24px 70px rgba(239, 68, 68, 0.38);
+
+        /* Un seul anneau de focus pour toute l'app, clavier uniquement. */
+        :focus-visible {
+            outline: 2px solid var(--p97-accent);
+            outline-offset: 2px;
+            border-radius: var(--p97-r-sm);
         }
 
+        ::selection {
+            background: var(--p97-accent);
+            color: #fff;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ============================================================
+           STRUCTURE
+           ============================================================ */
+        .p97-shell {
+            background: var(--p97-bg);
+            box-shadow: var(--p97-shadow-lg);
+            padding-top: var(--p97-safe-top);
+        }
         .p97-luxe-bg {
             position: relative;
             isolation: isolate;
-            background: #050505;
+            background: var(--p97-bg);
         }
-        .p97-luxe-bg::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: none;
-            opacity: 0;
-            z-index: -1;
+        .p97-page {
+            background: var(--p97-bg);
         }
-        .p97-luxe-card {
-            background: #111113;
-            border: 1px solid rgba(255,255,255,.10);
-            box-shadow: none;
-            backdrop-filter: none;
+        .p97-danger-room {
+            background: #0b0505;
+        }
+
+        /* ============================================================
+           TYPOGRAPHIE — hiérarchie par taille et graisse, pas par
+           tout-en-noir-majuscule.
+           ============================================================ */
+        .p97-display {
+            font-size: clamp(1.875rem, 8vw, 2.5rem);
+            font-weight: 700;
+            letter-spacing: -0.035em;
+            line-height: 1.05;
+            color: var(--p97-text);
+        }
+        .p97-luxe-title {
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            color: var(--p97-text);
+        }
+        .p97-eyebrow {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--p97-text-3);
+        }
+        .p97-body {
+            font-size: 0.875rem;
+            font-weight: 400;
+            line-height: 1.55;
+            color: var(--p97-text-2);
+        }
+        .p97-title {
+            color: var(--p97-text);
+        }
+
+        /* ============================================================
+           SURFACES
+           ============================================================ */
+        .p97-luxe-card,
+        .p97-glass {
+            background: var(--p97-surface-1);
+            border: 1px solid var(--p97-line);
+            border-radius: var(--p97-r-lg);
+            transition: border-color var(--p97-dur) var(--p97-ease),
+                        background var(--p97-dur) var(--p97-ease);
         }
         .p97-luxe-card:hover {
-            border-color: rgba(255,255,255,.18);
+            border-color: var(--p97-line-strong);
         }
         .p97-section {
             position: relative;
-            overflow: hidden;
-            border-radius: 1.75rem;
-            padding: 1.5rem;
+            border-radius: var(--p97-r-lg);
+            padding: 1.25rem;
         }
-        .p97-section::before {
-            content: none;
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: transparent;
-            opacity: 0;
+        .p97-mini-card,
+        .p97-icon-tile,
+        .p97-chrome-pill,
+        .p97-soft {
+            background: var(--p97-surface-2);
+            border: 1px solid var(--p97-line);
+            border-radius: var(--p97-r-md);
+            transition: border-color var(--p97-dur) var(--p97-ease),
+                        background var(--p97-dur) var(--p97-ease);
         }
+        .p97-mini-card:hover {
+            border-color: var(--p97-line-strong);
+        }
+
+        /* ============================================================
+           CHAMPS
+           ============================================================ */
         .p97-field {
             width: 100%;
-            border-radius: 1rem;
-            border: 1px solid rgba(148,163,184,.18);
-            background: #0b0b0c;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
-            color: #fff;
+            border-radius: var(--p97-r-md);
+            border: 1px solid var(--p97-line);
+            background: var(--p97-surface-2);
+            color: var(--p97-text);
             outline: none;
-            transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+            transition: border-color var(--p97-dur) var(--p97-ease),
+                        box-shadow var(--p97-dur) var(--p97-ease);
         }
         .p97-field:focus {
-            border-color: rgba(255,255,255,.36);
-            background: #111113;
-            box-shadow: 0 0 0 3px rgba(255,59,95,.14);
+            border-color: var(--p97-accent-line);
+            box-shadow: 0 0 0 3px var(--p97-accent-soft);
         }
         .p97-field::placeholder {
-            color: rgba(148,163,184,.58);
+            color: var(--p97-text-3);
         }
-        .p97-mini-card {
-            background: #171719;
-            border: 1px solid rgba(255,255,255,.10);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+
+        /* ============================================================
+           ACTIONS — cible tactile 48px minimum partout.
+           ============================================================ */
+        .p97-sos-luxe,
+        .p97-primary,
+        .p97-danger {
+            background: var(--p97-accent);
+            color: #fff;
+            border: 1px solid transparent;
+            border-radius: var(--p97-r-lg);
+            min-height: 48px;
+            box-shadow: var(--p97-shadow-md);
+            transition: background var(--p97-dur) var(--p97-ease),
+                        transform var(--p97-dur) var(--p97-ease);
         }
-        .p97-icon-tile {
-            background: #171719;
-            border: 1px solid rgba(255,255,255,.10);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+        .p97-sos-luxe:hover:not(:disabled),
+        .p97-primary:hover:not(:disabled) {
+            background: var(--p97-accent-hover);
         }
-        .p97-luxe-title {
-            letter-spacing: -0.055em;
-            color: #f8fafc;
-            text-shadow: none;
+        .p97-sos-luxe:active:not(:disabled),
+        .p97-primary:active:not(:disabled) {
+            background: var(--p97-accent-press);
         }
-        .p97-chrome-pill {
-            background: #171719;
-            border: 1px solid rgba(255,255,255,.12);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+        .p97-toggle-action,
+        .p97-language-trigger {
+            background: var(--p97-surface-2);
+            border: 1px solid var(--p97-line);
+            border-radius: var(--p97-r-md);
+            min-height: 44px;
+            color: var(--p97-text-2);
+            transition: border-color var(--p97-dur) var(--p97-ease),
+                        color var(--p97-dur) var(--p97-ease);
         }
-        .p97-sos-luxe {
-            background: #ff3b5f;
-            box-shadow: none;
+        .p97-toggle-action:hover,
+        .p97-language-trigger:hover {
+            border-color: var(--p97-line-strong);
+            color: var(--p97-text);
         }
-        .p97-language-trigger,
-        .p97-toggle-action {
-            background: #171719;
-            border: 1px solid rgba(255,255,255,.12);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-            backdrop-filter: blur(18px);
-        }
+
+        /* ============================================================
+           MENU LANGUES
+           ============================================================ */
         .p97-language-menu {
-            background: #171719;
-            border: 1px solid rgba(255,255,255,.10);
-            box-shadow: 0 18px 40px rgba(0,0,0,.38);
-            backdrop-filter: none;
+            background: var(--p97-surface-2);
+            border: 1px solid var(--p97-line-strong);
+            border-radius: var(--p97-r-md);
+            box-shadow: var(--p97-shadow-lg);
         }
         .p97-language-item {
             border: 1px solid transparent;
             background: transparent;
+            border-radius: var(--p97-r-sm);
+            min-height: 44px;
         }
         .p97-language-item-active {
-            border-color: rgba(255,59,95,.28);
-            background: rgba(255,59,95,.11);
+            border-color: var(--p97-accent-line);
+            background: var(--p97-accent-soft);
         }
+
+        /* ============================================================
+           ÉTAT « PROTÉGÉ » — le vert signifie la sécurité, rien d'autre.
+           ============================================================ */
         .p97-safe-orb {
-            background: #0f1f17;
-            border: 1px solid rgba(134,239,172,.18);
-            box-shadow: none;
+            background:
+                radial-gradient(circle at 50% 40%, var(--p97-safe-soft), transparent 70%),
+                var(--p97-surface-1);
+            border: 1px solid var(--p97-safe-line);
         }
-        .p97-danger-room {
-            background: #090304;
+
+        /* ============================================================
+           NAVIGATION
+           ============================================================ */
+        .p97-nav {
+            background: color-mix(in srgb, var(--p97-surface-1) 88%, transparent);
+            border: 1px solid var(--p97-line);
+            border-radius: var(--p97-r-lg);
+            box-shadow: var(--p97-shadow-md);
+            backdrop-filter: blur(20px);
+            margin-bottom: var(--p97-safe-bottom);
         }
+
+        /* ============================================================
+           DIVERS
+           ============================================================ */
         .p97-scrollbar::-webkit-scrollbar { width: 4px; }
-        .p97-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 99px; }
+        .p97-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--p97-line-strong);
+            border-radius: 99px;
+        }
+        .p97-aurora {
+            background: radial-gradient(circle, var(--p97-accent-soft), transparent 70%);
+            filter: blur(28px);
+        }
         .emergency-pulse {
-            animation: pulse-red 1.5s infinite;
+            animation: pulse-accent 1.6s var(--p97-ease) infinite;
         }
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(220, 38, 38, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        @keyframes pulse-accent {
+            0%   { box-shadow: 0 0 0 0 rgba(238, 90, 77, 0.55); }
+            70%  { box-shadow: 0 0 0 22px rgba(238, 90, 77, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(238, 90, 77, 0); }
         }
-        .animate-spin-slow {
-            animation: spin 3s linear infinite;
-        }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
         @keyframes spin {
             from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            to   { transform: rotate(360deg); }
         }
         .leaflet-container {
-            background: #0a0a0a !important;
+            background: var(--p97-surface-1) !important;
             border: none !important;
         }
-        .leaflet-control-attribution {
-            display: none !important;
-        }
+        .leaflet-control-attribution { display: none !important; }
     </style>
 <script type="importmap">
 {
