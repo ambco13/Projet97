@@ -223,7 +223,7 @@ const SetupView: React.FC<Props> = ({ onComplete, onLanguageChange, onCancel, in
           </div>
         </section>
 
-        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), ownerPhone.trim(), contacts, pin, guardianNetwork, language)} className="w-full p97-sos-luxe text-white font-black py-5 rounded-[2rem] shadow-2xl transition-all active:scale-[0.98] disabled:opacity-20 uppercase tracking-widest text-sm">
+        <button disabled={!isReady} onClick={() => onComplete(ownerName.trim(), ownerPhone.trim(), contacts, pin, guardianNetwork, language)} className="w-full p97-sos-luxe text-white font-black py-5 rounded-[1.5rem] shadow-2xl transition-all active:scale-[0.98] disabled:opacity-20 uppercase tracking-widest text-sm">
           {initialConfig?.pin ? t.saveChanges : t.activateProtection}
         </button>
       </div>

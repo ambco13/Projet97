@@ -37,10 +37,7 @@
         }
         body {
             font-family: 'Inter', sans-serif;
-            background:
-                radial-gradient(circle at 20% 0%, rgba(34, 211, 238, 0.16), transparent 32rem),
-                radial-gradient(circle at 85% 18%, rgba(255, 59, 95, 0.18), transparent 28rem),
-                linear-gradient(135deg, #020617 0%, #050816 48%, #111827 100%);
+            background: #000;
             color: #ffffff;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
@@ -54,13 +51,11 @@
             position: fixed;
             inset: 0;
             pointer-events: none;
-            background-image: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
-            background-size: 42px 42px;
-            mask-image: radial-gradient(circle at center, black, transparent 72%);
+            background: none;
         }
         .p97-shell {
-            background: linear-gradient(180deg, rgba(8, 17, 31, 0.88), rgba(2, 6, 23, 0.98));
-            box-shadow: 0 36px 140px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.16);
+            background: #050505;
+            box-shadow: 0 30px 80px rgba(0,0,0,.48);
         }
         .p97-glass {
             background: linear-gradient(145deg, rgba(15, 23, 42, 0.76), rgba(2, 6, 23, 0.58));
@@ -100,22 +95,22 @@
         .p97-luxe-bg {
             position: relative;
             isolation: isolate;
-            background: linear-gradient(180deg, #111827 0%, #050816 54%, #020617 100%);
+            background: #050505;
         }
         .p97-luxe-bg::before {
             content: '';
             position: absolute;
             inset: 0;
             pointer-events: none;
-            background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 22%);
-            opacity: .7;
+            background: none;
+            opacity: 0;
             z-index: -1;
         }
         .p97-luxe-card {
-            background: rgba(15, 23, 42, .72);
-            border: 1px solid rgba(255,255,255,.12);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 44px rgba(0,0,0,.26);
-            backdrop-filter: blur(20px) saturate(1.08);
+            background: #111113;
+            border: 1px solid rgba(255,255,255,.10);
+            box-shadow: none;
+            backdrop-filter: none;
         }
         .p97-luxe-card:hover {
             border-color: rgba(255,255,255,.18);
@@ -138,7 +133,7 @@
             width: 100%;
             border-radius: 1rem;
             border: 1px solid rgba(148,163,184,.18);
-            background: rgba(2,6,23,.58);
+            background: #0b0b0c;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
             color: #fff;
             outline: none;
@@ -146,19 +141,19 @@
         }
         .p97-field:focus {
             border-color: rgba(255,255,255,.36);
-            background: rgba(15,23,42,.72);
-            box-shadow: 0 0 0 4px rgba(255,255,255,.06);
+            background: #111113;
+            box-shadow: 0 0 0 3px rgba(255,59,95,.14);
         }
         .p97-field::placeholder {
             color: rgba(148,163,184,.58);
         }
         .p97-mini-card {
-            background: rgba(255,255,255,.055);
+            background: #171719;
             border: 1px solid rgba(255,255,255,.10);
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
         }
         .p97-icon-tile {
-            background: rgba(255,255,255,.07);
+            background: #171719;
             border: 1px solid rgba(255,255,255,.10);
             box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
         }
@@ -168,26 +163,26 @@
             text-shadow: none;
         }
         .p97-chrome-pill {
-            background: rgba(255,255,255,.07);
+            background: #171719;
             border: 1px solid rgba(255,255,255,.12);
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
         }
         .p97-sos-luxe {
             background: #ff3b5f;
-            box-shadow: 0 16px 40px rgba(255,59,95,.24), inset 0 1px 0 rgba(255,255,255,.18);
+            box-shadow: none;
         }
         .p97-language-trigger,
         .p97-toggle-action {
-            background: rgba(255,255,255,.07);
+            background: #171719;
             border: 1px solid rgba(255,255,255,.12);
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
             backdrop-filter: blur(18px);
         }
         .p97-language-menu {
-            background: rgba(15,23,42,.94);
-            border: 1px solid rgba(255,255,255,.12);
-            box-shadow: 0 18px 50px rgba(0,0,0,.34);
-            backdrop-filter: blur(22px);
+            background: #171719;
+            border: 1px solid rgba(255,255,255,.10);
+            box-shadow: 0 18px 40px rgba(0,0,0,.38);
+            backdrop-filter: none;
         }
         .p97-language-item {
             border: 1px solid transparent;
@@ -198,12 +193,12 @@
             background: rgba(255,59,95,.11);
         }
         .p97-safe-orb {
-            background: rgba(6, 78, 59, .28);
-            border: 1px solid rgba(134,239,172,.22);
-            box-shadow: 0 24px 70px rgba(34,197,94,.12), inset 0 1px 0 rgba(255,255,255,.08);
+            background: #0f1f17;
+            border: 1px solid rgba(134,239,172,.18);
+            box-shadow: none;
         }
         .p97-danger-room {
-            background: linear-gradient(180deg, #1f070d 0%, #0b0710 58%, #020617 100%);
+            background: #090304;
         }
         .p97-scrollbar::-webkit-scrollbar { width: 4px; }
         .p97-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 99px; }

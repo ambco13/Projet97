@@ -205,7 +205,7 @@ const EmergencyView: React.FC<Props> = ({ ownerName, ownerPhone, contacts, langu
         </header>
 
         <div className="flex-1 flex flex-col items-center overflow-y-auto p97-scrollbar pb-4">
-          <div className="w-full h-72 p97-luxe-card rounded-[2rem] mb-6 overflow-hidden relative shadow-2xl shrink-0">
+          <div className="w-full h-72 p97-luxe-card rounded-[1.5rem] mb-6 overflow-hidden relative shadow-2xl shrink-0">
             {coords ? <MapView lat={coords.lat} lng={coords.lng} zoom={17} /> : <div className="w-full h-full flex items-center justify-center bg-neutral-950 text-[10px] font-black uppercase text-neutral-500">GPS...</div>}
           </div>
 

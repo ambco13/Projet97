@@ -326,7 +326,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
           <div className={`absolute inset-[-30px] border border-green-500/10 rounded-full transition-all duration-[2000ms] ${pulse ? 'scale-110 opacity-40' : 'scale-90 opacity-0'}`}></div>
           <div className={`absolute inset-[-15px] border border-green-500/20 rounded-full transition-all duration-[1500ms] ${pulse ? 'scale-105 opacity-60' : 'scale-95 opacity-0'}`}></div>
 
-          <div className="relative z-10 w-full h-full rounded-[4rem] p97-safe-orb flex flex-col items-center justify-center">
+          <div className="relative z-10 w-full h-full rounded-[3rem] p97-safe-orb flex flex-col items-center justify-center">
             <div className="absolute inset-2 border border-green-500/5 rounded-full animate-[spin_10s_linear_infinite]"></div>
             <Shield size={64} className="text-green-500 mb-2 drop-shadow-[0_0_15px_rgba(34,197,94,0.4)]" fill="currentColor" fillOpacity={0.1} />
             <div className="h-1 w-10 bg-green-500/20 rounded-full mb-1"></div>
@@ -450,7 +450,7 @@ const ProtectedView: React.FC<Props> = ({ contacts, ownerPhone, isListening, gua
         {protectionEnabled && (
           <button
             onClick={onTrigger}
-            className="w-full p97-sos-luxe text-white font-black py-6 rounded-[1.8rem] shadow-xl transition-all transform active:scale-[0.97] uppercase tracking-[0.24em] text-xs"
+            className="w-full p97-sos-luxe text-white font-black py-6 rounded-[1.25rem] shadow-xl transition-all transform active:scale-[0.97] uppercase tracking-widest text-xs"
           >
             {t.manualSos}
           </button>
