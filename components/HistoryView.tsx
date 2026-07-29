@@ -100,18 +100,18 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
   }, { TRIGGER: 0, AUDIO: 0, LOCATION: 0, DETERRENCE: 0, SYSTEM: 0 }), [logs]);
 
   return (
-    <div className="p-6 flex flex-col h-full animate-in slide-in-from-right duration-500 bg-[#050505]">
+    <div className="p97-page p-6 flex flex-col h-full animate-in slide-in-from-right duration-500">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter">{t.logs}</h2>
+          <h2 className="p97-luxe-title text-4xl font-black tracking-tighter">{t.logs}</h2>
           <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t.securityReports}</p>
         </div>
-        <button onClick={onClose} className="p-3 bg-neutral-900 rounded-2xl hover:bg-neutral-800 transition-colors">
+        <button onClick={onClose} className="p-3 p97-luxe-card rounded-2xl hover:bg-white/10 transition-colors">
           <X size={24} className="text-neutral-400" />
         </button>
       </div>
 
-      <div className="mb-4 rounded-3xl border border-white/10 bg-neutral-900/40 p-3">
+      <div className="mb-4 p97-luxe-card p97-section p-3">
         <div className="grid grid-cols-3 gap-2">
           {allFilters.filter((filter) => filter !== 'ALL').map((type) => (
             <button
@@ -144,7 +144,7 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p97-scrollbar">
         {logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center py-20 opacity-20">
             <Calendar size={80} className="mb-6" />
@@ -162,7 +162,7 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
               <button
                 key={log.id}
                 onClick={() => setSelectedLog(log)}
-                className="text-left bg-neutral-900/60 rounded-2xl border border-white/10 p-3 min-h-28 hover:border-red-500/40 transition"
+                className="text-left p97-mini-card rounded-[1.4rem] p-4 min-h-32 hover:border-red-500/40 hover:-translate-y-1 transition-all"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-mono text-neutral-500">#{log.id.slice(-4)}</span>
@@ -184,8 +184,8 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
       </div>
 
       {selectedLog && (
-        <div className="fixed inset-0 z-[115] bg-black/75 backdrop-blur-sm flex items-end">
-          <div className="w-full rounded-t-[2rem] border-t border-white/10 bg-[#090909] p-5 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-[115] bg-slate-950/75 backdrop-blur-sm flex items-end">
+          <div className="w-full rounded-t-[2rem] p97-luxe-card p-5 animate-in slide-in-from-bottom duration-300">
             <div className="w-12 h-1.5 rounded-full bg-neutral-700 mx-auto mb-4" />
             <div className="flex justify-between items-start gap-3 mb-4">
               <div>
@@ -200,19 +200,19 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
               <button
                 onClick={() => setSelectedMap(selectedLog)}
                 disabled={!selectedLog.coordinates}
-                className="bg-white/5 disabled:opacity-40 py-3 rounded-xl text-[9px] font-black uppercase"
+                className="p97-mini-card disabled:opacity-40 py-3 rounded-xl text-[9px] font-black uppercase"
               >
                 <MapPin size={12} className="mx-auto mb-1" />{t.map}
               </button>
               <button
                 onClick={() => shareLog(selectedLog)}
-                className="bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase"
+                className="p97-mini-card py-3 rounded-xl text-[9px] font-black uppercase"
               >
                 <Share2 size={12} className="mx-auto mb-1" />{t.share}
               </button>
               <button
                 onClick={() => downloadProof(selectedLog)}
-                className="bg-red-600/10 py-3 rounded-xl text-[9px] font-black uppercase"
+                className="p97-mini-card py-3 rounded-xl text-[9px] font-black uppercase text-red-200"
               >
                 <Download size={12} className="mx-auto mb-1" />{t.proof}
               </button>
@@ -222,7 +222,7 @@ const HistoryView: React.FC<Props> = ({ logs, language, onClose, translations: t
       )}
 
       {selectedMap && (
-        <div className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-xl flex flex-col p-8 animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-[120] p97-page backdrop-blur-xl flex flex-col p-8 animate-in zoom-in-95 duration-300">
           <button onClick={() => setSelectedMap(null)} className="p-2 bg-neutral-900 rounded-xl ml-auto mb-6">
             <X size={20} />
           </button>
